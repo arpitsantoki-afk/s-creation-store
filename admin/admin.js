@@ -583,7 +583,9 @@ async function viewSettings() {
           ${F.text('shipping.origin.email', 'Email')}${F.text('shipping.origin.line1', 'Address')}${F.text('shipping.origin.city', 'City')}${F.text('shipping.origin.state', 'State code')}${F.text('shipping.origin.postcode', 'PIN code')}${F.text('shipping.origin.country', 'Country (ISO)')}${F.text('shipping.origin.gstin', 'GSTIN', { hint: 'printed on export docs' })}</div></div>
         <div class="card"><h2>DHL Express <span>${dot(integ.dhl.configured)}</span></h2><div class="grid3">${F.bool('shipping.dhl.enabled', 'Use DHL live rates')}${F.bool('shipping.dhl.test', 'Use DHL test environment')}${F.sel('shipping.dhl.incoterm', 'Incoterm', [['DAP', 'DAP — buyer pays duties'], ['DDP', 'DDP — you pay duties']])}
           ${F.csv('shipping.dhl.productCodes', 'Allowed product codes', { hint: 'empty = all. P = Express Worldwide, N = Domestic', upper: true })}${F.num('shipping.handlingPct', 'Handling % on top of DHL rate')}</div>
-          <p class="muted" style="font-size:12px">Secrets: DHL_API_KEY, DHL_API_SECRET, DHL_ACCOUNT_NUMBER (from developer.dhl.com, MyDHL API).</p></div>
+          <p class="muted" style="font-size:12px">GitHub secrets: <b>DHL_API_KEY</b> = MyDHL API username, <b>DHL_API_SECRET</b> = MyDHL API password, <b>DHL_ACCOUNT_NUMBER</b> = your 9-digit DHL Express account. Untick “test environment” if your credentials are for production. Save settings before testing.</p>
+          <div class="row" style="margin-top:8px"><input class="i" id="dhlc" value="US" style="width:70px" title="Country"><input class="i" id="dhlp" value="10001" style="width:110px" title="Postcode"><input class="i" id="dhlcity" value="New York" style="width:160px" title="City"><button class="btn sm" data-dhltest>Test DHL connection</button></div>
+          <pre id="dhlout" style="white-space:pre-wrap;font-size:12px;background:#faf9f7;border:1px solid var(--line);padding:10px;margin-top:10px;max-height:320px;overflow:auto" hidden></pre></div>
         <div class="card"><h2>Packing</h2><div class="grid4">${F.num('shipping.packaging.maxBoxKg', 'Max kg per box')}${F.num('shipping.packaging.box.l', 'Box L (cm)')}${F.num('shipping.packaging.box.w', 'Box W (cm)')}${F.num('shipping.packaging.box.h', 'Box H (cm)')}${F.num('shipping.packaging.packagingPct', 'Packaging weight %')}</div></div>
         <div class="card"><h2>Fallback zone rates <span class="muted mono">used when DHL is off or has no rate</span></h2>${F.bool('shipping.manual.enabled', 'Enabled')}
           <div style="margin-top:10px">${rep('shipping.manual.zones', [{ k: 'name', label: 'Zone' }, { k: 'countries', label: 'Countries (ISO, * = rest)', kind: 'csv', upper: true, wide: true }, { k: 'base', label: `Base (${S.baseCurrency})`, kind: 'num' }, { k: 'perKg', label: 'Per kg', kind: 'num' }, { k: 'days', label: 'Delivery time' }], S.shipping.manual.zones, { addLabel: 'Add zone' })}</div></div>`,
@@ -611,6 +613,12 @@ async function viewSettings() {
     bind($('#pane'), S);
     $$('[data-tab]').forEach((b) => (b.onclick = () => { stab = b.dataset.tab; render(); }));
     $$('[data-lang]').forEach((c) => (c.onchange = () => { const l = c.dataset.lang; S.languages.enabled = c.checked ? [...new Set([...S.languages.enabled, l])] : S.languages.enabled.filter((x) => x !== l); dirty = true; render(); }));
+    const dt = $('[data-dhltest]'); if (dt) dt.onclick = async () => {
+      const o = $('#dhlout'); o.hidden = false; o.textContent = 'Asking DHL…';
+      try { const d = await api('/api/admin/shipping/test', { method: 'POST', body: { country: $('#dhlc').value, postcode: $('#dhlp').value, city: $('#dhlcity').value } });
+        o.textContent = (d.ok ? '✓ DHL is working — ' + d.rates.map((r) => `${r.service}: ${r.amountCurrency} ${r.amount}`).join(' · ') : '✗ ' + d.error) + '\n\n' + JSON.stringify(d, null, 2); }
+      catch (e) { o.textContent = '✗ ' + e.message; }
+    };
     const fxb = $('[data-fx]'); if (fxb) fxb.onclick = async () => { try { fxCache = (await api('/api/admin/fx/refresh', { method: 'POST' })).fx; toast('Rates refreshed'); render(); } catch (e) { toast(e.message, true); } };
     const raw = $('#rawjson'); if (raw) raw.oninput = () => { try { const v = JSON.parse(raw.value); Object.keys(S).forEach((k) => delete S[k]); Object.assign(S, v); raw.style.borderColor = ''; dirty = true; } catch { raw.style.borderColor = 'var(--err)'; } };
   };

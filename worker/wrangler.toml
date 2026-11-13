@@ -15,7 +15,6 @@ ALLOWED_ORIGINS = "http://localhost:8080,http://127.0.0.1:8080"
 # GitHub repo that builds the storefront ("owner/repo"); used by the dashboard Publish button
 GITHUB_REPO = "your-github-user/s-creation-store"
 STRIPE_MODE = "test"          # test | live (informational; the key decides)
-DHL_ENV = "test"              # test | live
 # Password hashing strength. 20000 fits the free plan's 10 ms CPU limit; raise to 100000 on Workers Paid
 # (existing passwords are upgraded automatically at next sign-in).
 PBKDF2_ITERATIONS = "20000"

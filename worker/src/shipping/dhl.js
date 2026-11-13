@@ -2,7 +2,9 @@
 // Rates: POST /rates · Shipments (label + AWB): POST /shipments · Tracking: GET /shipments/{awb}/tracking
 import { totalKg } from './packing.js';
 
-const host = (env, settings) => (env.DHL_ENV === 'live' && !settings.shipping?.dhl?.test ? 'https://express.api.dhl.com/mydhlapi' : 'https://express.api.dhl.com/mydhlapi/test');
+// Test vs live is chosen in Dashboard → Settings → Shipping (“Use DHL test environment”).
+const host = (env, settings) => (settings.shipping?.dhl?.test === false ? 'https://express.api.dhl.com/mydhlapi' : 'https://express.api.dhl.com/mydhlapi/test');
+export const dhlHost = host;
 const auth = (env) => 'Basic ' + btoa(`${env.DHL_API_KEY}:${env.DHL_API_SECRET}`);
 
 async function call(env, settings, method, path, body) {

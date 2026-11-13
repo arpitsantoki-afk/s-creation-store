@@ -243,6 +243,21 @@ export function adminRoutes(r) {
     await saveSettings(env, b);
     return json({ settings: await getSettings(env) });
   });
+  // Diagnose DHL: runs one sample rate request and returns DHL's raw answer.
+  A('POST', '/api/admin/shipping/test', 'settings', async (req, env) => {
+    const b = await body(req);
+    const settings = await getSettings(env);
+    const missing = ['DHL_API_KEY', 'DHL_API_SECRET', 'DHL_ACCOUNT_NUMBER'].filter((k) => !env[k]);
+    const { dhlHost } = await import('../shipping/dhl.js');
+    const out = { endpoint: dhlHost(env, settings), environment: settings.shipping?.dhl?.test === false ? 'live' : 'test', enabledInSettings: !!settings.shipping?.dhl?.enabled, missingSecrets: missing,
+      origin: settings.shipping?.origin, destination: { country: clean(b.country || 'US', 2).toUpperCase(), postcode: clean(b.postcode || '10001', 20), city: clean(b.city || 'New York', 80) } };
+    if (missing.length) return json({ ok: false, ...out, error: `Missing GitHub secrets: ${missing.join(', ')} — add them and re-run “Deploy API worker”.` });
+    try {
+      const rates = await carriers.dhl.rates({ env, settings, address: out.destination, boxes: packBoxes(10000, settings), declaredValueBase: 30000 });
+      return json({ ok: rates.length > 0, ...out, rates, ...(rates.length ? {} : { error: 'DHL answered but returned no products for this lane/date.' }) });
+    } catch (e) { return json({ ok: false, ...out, error: e.message }); }
+  });
+
   A('POST', '/api/admin/fx/refresh', 'settings', async (req, env) => json({ fx: await refreshFx(env, await getSettings(env)) }));
 
   // ---- orders ----
