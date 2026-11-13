@@ -18,13 +18,26 @@ const href = (p) => {
   if (SC.fileLinks && u.endsWith('/')) u += 'index.html';
   return u;
 };
+// Customer session (signed token from the API; 30 days)
+export const session = {
+  get token() { return store.get('sc_ctoken', null); },
+  set(token, profile) { store.set('sc_ctoken', token); if (profile) store.set('sc_cprofile', profile); paintAccount(); },
+  profile() { return store.get('sc_cprofile', null); },
+  clear() { try { localStorage.removeItem('sc_ctoken'); localStorage.removeItem('sc_cprofile'); } catch {} paintAccount(); },
+};
+function paintAccount() {
+  const p = session.token && session.profile();
+  for (const el of $$('[data-acct-label]')) el.textContent = p ? (p.name || p.email).split(' ')[0] : t(lang, 'signIn');
+}
 async function api(path, opts = {}) {
   if (!SC.api) throw new Error('API not configured');
+  const auth = session.token && /^\/api\/(account|checkout)/.test(path) ? { authorization: 'Bearer ' + session.token } : {};
   const r = await fetch(SC.api.replace(/\/$/, '') + path, {
-    ...opts, headers: { 'content-type': 'application/json', ...(opts.headers || {}) },
+    ...opts, headers: { 'content-type': 'application/json', ...auth, ...(opts.headers || {}) },
     body: opts.body && typeof opts.body !== 'string' ? JSON.stringify(opts.body) : opts.body,
   });
   const data = await r.json().catch(() => ({}));
+  if (r.status === 401 && auth.authorization) session.clear();
   if (!r.ok) throw Object.assign(new Error(data.error || `Request failed (${r.status})`), { data, status: r.status });
   return data;
 }
@@ -191,13 +204,22 @@ async function initCheckout(root) {
   const dn = new Intl.DisplayNames([locale], { type: 'region' });
   const countries = COUNTRIES.map((c) => [c, dn.of(c) || c]).sort((a, b) => a[1].localeCompare(b[1], locale));
   const saved = store.get('sc_checkout', {});
+  let me = null;
+  if (session.token) { try { me = (await api('/api/account/me')).profile; session.set(session.token, me); } catch { me = null; } }
+  if (me) {
+    const def = me.addresses.find((a) => a.isDefault) || me.addresses[0];
+    Object.assign(saved, { email: me.email, name: saved.name || me.name, phone: saved.phone || me.phone, company: saved.company || me.company, taxId: saved.taxId || me.taxId });
+    if (def && !saved.line1) Object.assign(saved, { line1: def.line1, line2: def.line2, city: def.city, state: def.state, postcode: def.postcode, country: def.country, name: def.name || saved.name, company: def.company || saved.company, phone: def.phone || saved.phone });
+  }
   let rates = [], rate = null;
   const field = (n, label, attrs = '') => `<label>${label}<input name="${n}" value="${esc(saved[n] || '')}" ${attrs}></label>`;
+  const addrPick = me?.addresses?.length > 1 ? `<label>${t(lang, 'savedAddress')}<select data-pick><option value="">${t(lang, 'useNew')}</option>${me.addresses.map((a, i) => `<option value="${i}"${a.line1 === saved.line1 ? ' selected' : ''}>${esc([a.label, a.line1, a.city, a.country].filter(Boolean).join(' · '))}</option>`).join('')}</select></label>` : '';
   root.innerHTML = `<div class="cartgrid"><form class="form" data-co novalidate>
+    ${me ? '' : `<div class="hint"><span>${t(lang, 'signInFaster')}</span><a class="btn ghost sm" href="${href('/account/')}?next=checkout">${t(lang, 'signIn')}</a></div>`}
     <div class="fieldset"><h2><span class="n">1</span>${t(lang, 'contactDetails')}</h2>
       <div class="two">${field('email', t(lang, 'email'), 'type="email" required autocomplete="email"')}${field('phone', t(lang, 'phone'), 'type="tel" required autocomplete="tel"')}</div>
       <div class="two" style="margin-top:14px">${field('name', t(lang, 'name'), 'required autocomplete="name"')}${field('company', t(lang, 'company'), 'autocomplete="organization"')}</div></div>
-    <div class="fieldset"><h2><span class="n">2</span>${t(lang, 'shippingAddress')}</h2><div class="form">
+    <div class="fieldset"><h2><span class="n">2</span>${t(lang, 'shippingAddress')}</h2><div class="form">${addrPick}
       <label>${t(lang, 'country')}<select name="country" required autocomplete="country"><option value=""></option>${countries.map(([c, n]) => `<option value="${c}"${saved.country === c ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></label>
       ${field('line1', t(lang, 'address1'), 'required autocomplete="address-line1"')}${field('line2', t(lang, 'address2'), 'autocomplete="address-line2"')}
       <div class="two">${field('city', t(lang, 'city'), 'required autocomplete="address-level2"')}${field('state', t(lang, 'state'), 'autocomplete="address-level1"')}</div>
@@ -250,6 +272,12 @@ async function initCheckout(root) {
       rate = rates[0]; drawSum();
     } catch (e) { out.innerHTML = `<div class="errbox">${esc(e.message)}</div>`; rate = null; drawSum(); }
   });
+  if (me) form.elements.email.readOnly = true;
+  $('[data-pick]', root)?.addEventListener('change', (e) => {
+    const a = me.addresses[+e.target.value]; if (!a) return;
+    for (const k of ['line1', 'line2', 'city', 'state', 'postcode', 'country', 'name', 'company', 'phone']) if (form.elements[k] && a[k] != null) form.elements[k].value = a[k];
+    rate = null; rates = []; $('[data-rates-out]', root).innerHTML = ''; drawSum();
+  });
   form.addEventListener('change', (e) => {
     if (e.target.name === 'rate') { rate = rates[+e.target.value]; drawSum(); }
     if (['country', 'postcode', 'city'].includes(e.target.name)) { rate = null; rates = []; $('[data-rates-out]', root).innerHTML = ''; drawSum(); }
@@ -297,14 +325,15 @@ async function initOrder(root) {
     root.innerHTML = `<div style="max-width:760px;margin:40px auto 80px">
       <div class="${paid ? 'okbox' : 'warnbox'}" style="font-size:16px;padding:16px">${paid ? '✓ ' + t(lang, 'orderReceived') : esc(o.status === 'cancelled' ? 'Payment cancelled.' : t(lang, 'orderPending'))}</div>
       <h2 style="margin-top:28px">${t(lang, 'orderNumber')} ${esc(o.number)}</h2>
-      <p class="muted">${t(lang, 'status')}: <b>${esc(o.status.replace(/_/g, ' '))}</b>${o.tracking ? ` · DHL <a class="link" href="https://www.dhl.com/global-en/home/tracking/tracking-express.html?tracking-id=${encodeURIComponent(o.tracking)}" target="_blank" rel="noopener">${esc(o.tracking)}</a>` : ''}</p>
+      <p class="muted">${t(lang, 'status')}: <b>${esc(o.status.replace(/_/g, ' '))}</b>${o.shipment?.tracking ? ` · ${esc(o.shipment.carrier)} ${o.shipment.url ? `<a class="link" href="${esc(o.shipment.url)}" target="_blank" rel="noopener">${esc(o.shipment.tracking)}</a>` : esc(o.shipment.tracking)}` : ''}</p>
+      ${o.invoiceAvailable ? `<p><a class="btn ghost sm" href="${esc(SC.api.replace(/\/$/, ''))}/api/orders/${encodeURIComponent(id)}/invoice?t=${encodeURIComponent(tok)}">${t(lang, 'downloadInvoice')} (PDF)</a></p>` : ''}
       <div class="summary" style="position:static;margin-top:20px">
         ${o.groups.map((g) => `<div class="row"><span>${esc(g.name)} × ${g.qty}</span><span>${format(g.total, o.currency, locale)}</span></div>`).join('')}
         <div class="row"><span>${t(lang, 'shipping')} (${esc(o.shipping?.service || '')})</span><span>${format(o.shippingAmount, o.currency, locale)}</span></div>
         ${o.taxAmount ? `<div class="row"><span>${t(lang, 'tax')}</span><span>${format(o.taxAmount, o.currency, locale)}</span></div>` : ''}
         <div class="row total"><span>${t(lang, 'total')}</span><span>${format(o.total, o.currency, locale)}</span></div></div>
       ${!paid && o.status === 'pending_payment' && o.payUrl ? `<a class="btn accent" style="margin-top:18px" href="${esc(o.payUrl)}">${t(lang, 'payNow')} →</a>` : ''}
-      <p style="margin-top:24px"><a class="btn ghost" href="${href('/products/')}">${t(lang, 'backToShop')}</a></p></div>`;
+      <p style="margin-top:24px" class="row"><a class="btn ghost" href="${href('/products/')}">${t(lang, 'backToShop')}</a> ${session.token ? `<a class="btn ghost" href="${href('/account/')}#orders">${t(lang, 'myOrders')}</a>` : `<a class="btn ghost" href="${href('/account/')}">${t(lang, 'createAccount')}</a>`}</p></div>`;
   } catch (e) { root.innerHTML = `<div class="errbox">${esc(e.message)}</div>`; }
 }
 
@@ -323,6 +352,7 @@ function initContact() {
 
 // ---------------- boot ----------------
 initHeader();
+paintAccount();
 await initCurrency();
 applyPrices();
 initPDP();
@@ -331,3 +361,4 @@ const app = $('[data-app]');
 if (app?.dataset.app === 'cart') initCartPage(app);
 if (app?.dataset.app === 'checkout') initCheckout(app);
 if (app?.dataset.app === 'order') initOrder(app);
+if (app?.dataset.app === 'account') import('./account.js').then((m) => m.initAccount(app, { api, session, store, href, money, lang, t, esc, $, $$, toast, cart, catalog, format, locale }));

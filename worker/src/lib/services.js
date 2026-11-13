@@ -1,4 +1,5 @@
 import { saveFx } from './store.js';
+import { trackingUrl, carrierName } from '../../../shared/carriers.js';
 
 /** Fetch daily exchange rates for the base currency (free sources, no key). */
 export async function refreshFx(env, settings) {
@@ -19,11 +20,11 @@ export async function refreshFx(env, settings) {
 }
 
 /** Send email with Resend (optional). Silently skipped if not configured. */
-export async function sendEmail(env, { to, subject, html, replyTo }) {
+export async function sendEmail(env, { to, subject, html, replyTo, attachments }) {
   if (!env.RESEND_API_KEY || !env.EMAIL_FROM) return { skipped: true };
   const r = await fetch('https://api.resend.com/emails', {
     method: 'POST', headers: { authorization: `Bearer ${env.RESEND_API_KEY}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ from: env.EMAIL_FROM, to: Array.isArray(to) ? to : [to], subject, html, reply_to: replyTo }),
+    body: JSON.stringify({ from: env.EMAIL_FROM, to: Array.isArray(to) ? to : [to], subject, html, reply_to: replyTo, attachments }),
   });
   return { ok: r.ok };
 }
@@ -56,6 +57,9 @@ export function orderEmailHtml(order, settings, title) {
   ${order.taxAmount ? `<tr><td>${order.taxLabel}</td><td style="text-align:right">${f(order.taxAmount)}</td></tr>` : ''}
   <tr><td style="padding:10px 0;font-weight:800;border-top:2px solid #0E0E0E">Total</td><td style="text-align:right;font-weight:800;border-top:2px solid #0E0E0E">${f(order.total)}</td></tr></table>
   <p style="margin-top:20px;font-size:14px">Ship to: ${h([order.address.name, order.address.company, order.address.line1, order.address.line2, order.address.city, order.address.state, order.address.postcode, order.address.country].filter(Boolean).join(', '))}</p>
-  ${order.tracking ? `<p>DHL tracking: <a href="https://www.dhl.com/global-en/home/tracking/tracking-express.html?tracking-id=${order.tracking}">${order.tracking}</a></p>` : ''}
+  ${order.shipment?.tracking ? `<p>${h(carrierName(order.shipment))} tracking: <a href="${h(trackingUrl(order.shipment))}">${h(order.shipment.tracking)}</a></p>` : ''}
+  ${order.accountUrl ? `<p><a href="${h(order.accountUrl)}">View your order and download your invoice</a></p>` : ''}
   <p style="font-size:13px;color:#55534F">${settings.store.email} · ${settings.store.phone}</p></div></div>`;
 }
+
+export const b64 = (bytes) => { let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000)); return btoa(s); };

@@ -2,12 +2,14 @@
 import { Router, json, corsHeaders, HttpError } from './lib/http.js';
 import { publicRoutes } from './routes/public.js';
 import { adminRoutes } from './routes/admin.js';
+import { accountRoutes } from './routes/account.js';
 import { getSettings } from './lib/store.js';
 import { refreshFx, triggerPublish } from './lib/services.js';
 
 const router = new Router();
 publicRoutes(router);
 adminRoutes(router);
+accountRoutes(router);
 
 export default {
   async fetch(req, env, ctx) {

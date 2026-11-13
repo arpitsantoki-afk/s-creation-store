@@ -4,8 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev --local --persist-to .wrangler/state",
-    "db:init:local": "wrangler d1 execute screation --local --persist-to .wrangler/state --file=schema.sql",
-    "db:init": "wrangler d1 execute screation --remote --file=schema.sql",
+    "db:migrate:local": "wrangler d1 migrations apply screation --local --persist-to .wrangler/state",
+    "db:migrate": "wrangler d1 migrations apply screation --remote",
     "deploy": "wrangler deploy"
   },
   "devDependencies": { "wrangler": "^4.40.0" }

@@ -303,7 +303,7 @@ function contentPage(ctx, pg0) {
 
 function appPage(ctx, kind) {
   const { lang } = ctx;
-  const titles = { cart: t(lang, 'yourCart'), checkout: t(lang, 'checkout'), order: t(lang, 'orderNumber') };
+  const titles = { cart: t(lang, 'yourCart'), checkout: t(lang, 'checkout'), order: t(lang, 'orderNumber'), account: t(lang, 'account') };
   const body = `<div class="page-head"><div class="wrap"><h1>${titles[kind]}</h1></div></div><div class="wrap" data-app="${kind}"><div class="empty muted">…</div></div>`;
   return layout(ctx, { title: titles[kind] + S.seo.titleSuffix, description: S.seo.homeDescription, path: `/${kind}/`, body, noindex: true, pageClass: 'app' });
 }
@@ -324,8 +324,8 @@ ${sitemap.map((u) => `<url><loc>${xml(u.loc)}</loc><lastmod>${new Date().toISOSt
 function robots() {
   // Explicitly welcome search and AI crawlers so the catalogue can be cited by AI assistants.
   const bots = ['Googlebot', 'Bingbot', 'GPTBot', 'OAI-SearchBot', 'ChatGPT-User', 'ClaudeBot', 'Claude-User', 'Claude-SearchBot', 'anthropic-ai', 'PerplexityBot', 'Perplexity-User', 'Google-Extended', 'Applebot', 'Applebot-Extended', 'CCBot', 'DuckAssistBot', 'meta-externalagent'];
-  return `# ${S.store.name} — crawlers welcome\n${bots.map((b) => `User-agent: ${b}\nAllow: /\nDisallow: /admin/\nDisallow: /cart/\nDisallow: /checkout/\nDisallow: /order/\n`).join('\n')}
-User-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /cart/\nDisallow: /checkout/\nDisallow: /order/\n\nSitemap: ${site()}${BASE}/sitemap.xml\n`;
+  return `# ${S.store.name} — crawlers welcome\n${bots.map((b) => `User-agent: ${b}\nAllow: /\nDisallow: /admin/\nDisallow: /cart/\nDisallow: /checkout/\nDisallow: /order/\nDisallow: /account/\n`).join('\n')}
+User-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /cart/\nDisallow: /checkout/\nDisallow: /order/\nDisallow: /account/\n\nSitemap: ${site()}${BASE}/sitemap.xml\n`;
 }
 
 function llmsTxt(full = false) {
@@ -387,6 +387,7 @@ function merchantFeed(cur) {
 await fs.rm(OUT, { recursive: true, force: true });
 await copyDir(path.join(ROOT, 'site/static'), path.join(OUT, 'assets'));
 await fs.copyFile(path.join(ROOT, 'shared/pricing.js'), path.join(OUT, 'assets/js/pricing.js'));
+await fs.copyFile(path.join(ROOT, 'shared/carriers.js'), path.join(OUT, 'assets/js/carriers.js'));
 await copyDir(path.join(ROOT, 'site/lib'), path.join(OUT, 'assets/js/lib')).catch(() => {});
 await fs.rm(path.join(OUT, 'assets/js/lib/templates.js')).catch(() => {});
 await copyDir(path.join(ROOT, 'admin'), path.join(OUT, 'admin'));
@@ -405,7 +406,7 @@ for (const lang of langs) {
   await write(outPath('/size-guide/', lang), sizeGuide(ctx));
   await write(outPath('/faq/', lang), faqPage(ctx));
   for (const pg of S.pages || []) await write(outPath(`/${pg.slug}/`, lang), contentPage(ctx, pg));
-  for (const k of ['cart', 'checkout', 'order']) await write(outPath(`/${k}/`, lang), appPage(ctx, k));
+  for (const k of ['cart', 'checkout', 'order', 'account']) await write(outPath(`/${k}/`, lang), appPage(ctx, k));
 }
 await write('404.html', notFound(makeCtx(DEF)));
 

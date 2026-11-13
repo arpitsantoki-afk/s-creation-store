@@ -29,8 +29,11 @@ Storefront for **screationindia.in**: premium polos and tees sold in MOQ quantit
 | Tax | Per-country rules (seeded: India GST 5% on goods). Exports ship DAP |
 | SEO | Static HTML, clean URLs, canonical + hreflang, XML sitemap (with images and language alternates), JSON-LD (Organization, WebSite, ProductGroup with per-colour variants, Offers with MOQ and tier pricing in every currency, BreadcrumbList, FAQPage, CollectionPage), Open Graph/Twitter cards, Google Merchant Center feeds per currency (`/feeds/google-USD.xml`…) |
 | AI visibility | `robots.txt` explicitly allows GPTBot, ClaudeBot, PerplexityBot, Google-Extended etc.; `/llms.txt` + `/llms-full.txt` summaries; `/catalog.json` machine-readable catalogue; long-form use cases, specs and FAQs on every product page |
+| Customer accounts | Sign up with email/password or **Google**; account area with orders, order detail (size × colour breakdown), **PDF invoice download**, tracking links, "order again", profile, saved addresses (picked at checkout), password change, sign out everywhere. Guest orders appear once the email is verified. Password reset and email verification by email |
+| Team access | Multiple dashboard users with roles — **Owner** (everything incl. team), **Manager** (orders, products, settings, publish), **Staff** (orders, messages). Invite by email; sign in with **Google** or a password; optional auto-approve for a Google Workspace domain; disable/remove instantly |
+| Order management | Status changes and quick actions, shipping details for any courier (DHL, Blue Dart, Delhivery, FedEx, UPS, Aramex, other + custom URL), **one-click DHL label + commercial invoice**, **GST tax invoice / export invoice PDF** with financial-year numbering (CGST+SGST vs IGST), **packing slip PDF**, edit ship-to address, resend confirmation, shipped emails, timeline, CSV export |
 | Dashboard | Dashboard KPIs + setup checklist, orders (filters, search, CSV export, size × colour pick-list, status, tracking, DHL shipment, timeline), product editor (9 tabs incl. photos with in-browser WebP conversion, pricing preview in all currencies, Google preview, translations), enquiries inbox, settings (store, currencies, languages, payments, shipping, tax, content/pages/FAQs/size charts, SEO & analytics, team, raw JSON), publish history |
-| Security | PBKDF2 passwords, signed expiring sessions, login rate-limiting, server-side re-pricing of every order, HMAC-signed shipping quotes bound to cart + address, Stripe signature verification, redirect allow-list, CORS allow-list, honeypot on contact form |
+| Security | PBKDF2 passwords, role checks on every admin API call (read live from the DB), session revocation on password change/disable, OAuth state signing + return-URL allow-list, signed expiring sessions, login rate-limiting, server-side re-pricing of every order, HMAC-signed shipping quotes bound to cart + address, Stripe signature verification, redirect allow-list, CORS allow-list, honeypot on contact form |
 
 ## ⚠️ Placeholders to confirm before launch
 
@@ -70,7 +73,7 @@ cd worker && npm install
 npx wrangler login
 npx wrangler d1 create screation           # copy database_id into wrangler.toml
 npx wrangler r2 bucket create screation-media
-npx wrangler d1 execute screation --remote --file=schema.sql
+npx wrangler d1 migrations apply screation --remote
 # set GITHUB_REPO in wrangler.toml, then secrets:
 npx wrangler secret put SESSION_SECRET     # 40+ random chars
 npx wrangler secret put SETUP_TOKEN        # one-time, for creating the owner account
@@ -79,7 +82,15 @@ npx wrangler deploy                        # creates api.screationindia.in autom
 ```
 Later deploys run automatically from GitHub Actions on every push to `worker/`.
 
-### 4. Payments
+### 4. Google sign-in (customers and team)
+1. Go to console.cloud.google.com and create a project, e.g. "S Creation".
+2. Open **APIs & Services → OAuth consent screen**, choose *External*, and fill in the app name, support email and the authorized domain `screationindia.in`. Then **Publish app**.
+3. Open **Credentials → Create credentials → OAuth client ID** and choose *Web application*.
+   * Authorized redirect URI: `https://api.screationindia.in/api/auth/google/callback`
+4. Store the client ID and secret as Worker secrets: `npx wrangler secret put GOOGLE_CLIENT_ID` and `npx wrangler secret put GOOGLE_CLIENT_SECRET`.
+5. "Continue with Google" now shows on `/account/` and `/admin/`. Team members must be invited first, under Dashboard → Team, with the exact Google email.
+
+### 5. Payments
 * **Stripe** — Make sure your Stripe account supports your business in India and has international cards enabled. Then:
   * `wrangler secret put STRIPE_SECRET_KEY`
   * Add a webhook to `https://api.screationindia.in/api/webhooks/stripe` for these events: `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired`.
@@ -90,27 +101,34 @@ Later deploys run automatically from GitHub Actions on every push to `worker/`.
   * Switch the mode from *sandbox* to *live* in Settings → Payments.
   * PayPal can't take INR for cross-border payments, so it is hidden when the shopper's currency is INR.
 
-### 5. DHL Express
+### 6. DHL Express
 Request **MyDHL API** access at developer.dhl.com; it needs a DHL Express account number. Then:
 * Set `DHL_API_KEY`, `DHL_API_SECRET` and `DHL_ACCOUNT_NUMBER`.
 * Test against DHL's test environment first, which is on by default. When you're ready, untick *Use DHL test environment* and set `DHL_ENV = "live"` in wrangler.toml.
 * Fill in the ship-from address and GSTIN under Settings → Shipping.
 
-### 6. Optional
-* **Order emails:** sign up at resend.com, verify the domain, then set `RESEND_API_KEY` and add an `EMAIL_FROM` var such as `S Creation <orders@screationindia.in>`.
+### 7. Optional
+* **Emails (strongly recommended):** sign up at resend.com, verify the domain, then set `RESEND_API_KEY` and add an `EMAIL_FROM` var such as `S Creation <orders@screationindia.in>`.
+  * Resend sends order confirmations with the invoice PDF attached, shipping notices, and account emails (verification, password reset).
+  * Without it, those emails are skipped.
 * **Analytics:** GA4 ID or Cloudflare Web Analytics token (Settings → SEO & analytics).
 
-### 7. First run
+### 8. First run
 1. Open `https://screationindia.in/admin/` and create the owner account with your `SETUP_TOKEN`.
 2. Go to **Products** and click **Import the 6 starter products**.
 3. Set prices, upload photos and edit the policies.
-4. Click **Publish site**.
-5. Check the **Setup checklist** on the dashboard: every line should be green.
-6. Submit `https://screationindia.in/sitemap.xml` to Google Search Console and Bing Webmaster Tools. Add `/feeds/google-<CUR>.xml` to Google Merchant Center.
+4. Fill in your GSTIN, legal name and address under **Settings → Accounts & invoices**.
+5. Invite your team under **Team**.
+6. Click **Publish site**.
+7. Check the **Setup checklist** on the dashboard: every line should be green.
+8. Submit `https://screationindia.in/sitemap.xml` to Google Search Console and Bing Webmaster Tools. Add `/feeds/google-<CUR>.xml` to Google Merchant Center.
 
 ## Day-to-day
 * **Edit products, settings or pages, then click Publish.** Exchange-rate price changes go live without publishing.
-* **Orders:** when an order is paid, open it and print the pick-list. Then click **Create DHL shipment**: the label and invoice PDFs are saved and the customer gets an email. Alternatively, type in a tracking number yourself.
+* **Orders:** when an order is paid, open it and:
+  * print the **packing slip**;
+  * click **Generate DHL label**, or type in another courier's tracking number. Either way the order is marked shipped and the customer gets an email with the tracking link;
+  * download the **tax invoice** whenever you need it. Invoice numbers are assigned at payment as `SC/2026-27/0001` and run in sequence within each financial year.
 * **Refunds:** issue them in Stripe or PayPal, then set the order status to *refunded*.
 * **Adding a language:** go to Settings → Languages, then Products → Translations. **Auto-translate** writes a draft that you review before publishing.
 
@@ -119,7 +137,7 @@ Request **MyDHL API** access at developer.dhl.com; it needs a DHL Express accoun
 cd worker && npm install
 cp wrangler.toml wrangler.local.toml   # remove the [ai] block and the routes line for local use
 printf 'SESSION_SECRET=dev-secret-0123456789abcdef\nSETUP_TOKEN=dev\n' > .dev.vars
-npx wrangler d1 execute screation --local --file=schema.sql -c wrangler.local.toml
+npx wrangler d1 migrations apply screation --local -c wrangler.local.toml
 npx wrangler dev -c wrangler.local.toml --var API_URL:http://localhost:8787 --var SITE_URL:http://localhost:8080
 # new terminal, repo root:
 npm run build:local && npx serve dist -l 8080      # site at :8080, dashboard at :8080/admin/
@@ -127,6 +145,7 @@ npm run build:local && npx serve dist -l 8080      # site at :8080, dashboard at
 Without `API_URL` the build falls back to `content/*.json` (handy for design work).
 
 ## Extending
+* **Database changes:** add a new numbered file to `worker/migrations/`. The GitHub Action applies it on deploy.
 * **Payment gateway** (e.g. Razorpay): add `worker/src/payments/<name>.js` exposing `{ id, configured, supports, create }`, register it in `payments/index.js`, add `settings.payments.<name>`.
 * **Courier** (e.g. Shiprocket, Aramex): add `worker/src/shipping/<name>.js` exposing `{ id, configured, rates }` and call it from `shipping/index.js`.
 * **New products 7–17**: use Products → New product, or add them to `content/products.json` and run **Import starter products**.

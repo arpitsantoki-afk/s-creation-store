@@ -576,5 +576,20 @@
   ],
   "publish": {
     "nightly": false
+  },
+  "invoice": {
+    "prefix": "SC",
+    "legalName": "S Creation",
+    "gstin": "",
+    "address": "[Studio address]\nSurat, Gujarat 395003, India",
+    "state": "Gujarat",
+    "lutNote": "Supply meant for export under LUT without payment of IGST.",
+    "footer": "Thank you for your business."
+  },
+  "auth": {
+    "customerAccounts": true,
+    "googleAdmins": true,
+    "googleCustomers": true,
+    "adminDomains": []
   }
 }

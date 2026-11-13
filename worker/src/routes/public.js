@@ -4,7 +4,10 @@ import { getSettings, getFx, listProducts, getOrder, updateOrder, logEvent } fro
 import { priceCart, convert, taxFor, decimals, toMinor } from '../../../shared/pricing.js';
 import { quote } from '../shipping/index.js';
 import { gateways, availableGateways } from '../payments/index.js';
-import { sendEmail, orderEmailHtml } from '../lib/services.js';
+import { sendEmail, orderEmailHtml, b64 } from '../lib/services.js';
+import { customerFromReq } from '../lib/auth.js';
+import { ensureInvoiceNo, invoicePdf } from '../lib/documents.js';
+import { customerOrder } from './account.js';
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const COUNTRY_CUR = { US: 'USD', GB: 'GBP', IN: 'INR', AE: 'AED', AU: 'AUD', CA: 'CAD', SG: 'SGD', DE: 'EUR', FR: 'EUR', ES: 'EUR', IT: 'EUR', NL: 'EUR', IE: 'EUR', BE: 'EUR', AT: 'EUR', PT: 'EUR', FI: 'EUR', GR: 'EUR', LU: 'EUR', SK: 'EUR', SI: 'EUR', EE: 'EUR', LV: 'EUR', LT: 'EUR', MT: 'EUR', CY: 'EUR', HR: 'EUR', NZ: 'NZD', JP: 'JPY', CH: 'CHF', SA: 'SAR', QA: 'QAR' };
@@ -113,10 +116,11 @@ export function publicRoutes(r) {
       shippingAmount: rate.amount, taxAmount: tax.amount, taxLabel: tax.label, total,
     };
     const prefix = (settings.orders?.numberPrefix || 'SC').replace(/[^A-Z0-9-]/gi, '');
+    const cust = await customerFromReq(req, env);
     const { status, ...data } = { status: 'pending_payment', ...order };
-    await env.DB.prepare(`INSERT INTO orders (id, seq, number, status, email, currency, total, gateway, token, data)
-      SELECT ?, s, ? || '-' || s, 'pending_payment', ?, ?, ?, ?, ?, ? FROM (SELECT COALESCE(MAX(seq), 1000) + 1 AS s FROM orders)`)
-      .bind(id, prefix, customer.email, cur, total, gw.id, token, JSON.stringify(data)).run();
+    await env.DB.prepare(`INSERT INTO orders (id, seq, number, status, email, currency, total, gateway, token, data, customer_id)
+      SELECT ?, s, ? || '-' || s, 'pending_payment', ?, ?, ?, ?, ?, ?, ? FROM (SELECT COALESCE(MAX(seq), 1000) + 1 AS s FROM orders)`)
+      .bind(id, prefix, customer.email, cur, total, gw.id, token, JSON.stringify(data), cust?.id ?? null).run();
     const saved = await getOrder(env, id);
 
     const site = (settings.store.siteUrl || env.SITE_URL).replace(/\/$/, '');
@@ -145,6 +149,15 @@ export function publicRoutes(r) {
       } catch { /* fall through */ }
     }
     return json({ order: publicOrder(o) });
+  });
+
+  // Guest invoice download (the order link in the confirmation email carries the access token).
+  r.add('GET', '/api/orders/:id/invoice', async (req, env, ctx, p) => {
+    const o = await authOrder(req, env, p.id);
+    if (!['paid', 'processing', 'shipped', 'delivered', 'refunded'].includes(o.status)) throw bad('The invoice is available once payment is confirmed');
+    const settings = await getSettings(env);
+    o.invoiceNo = await ensureInvoiceNo(env, o, settings);
+    return new Response(invoicePdf(o, settings), { headers: { 'content-type': 'application/pdf', 'content-disposition': `attachment; filename="Invoice-${o.number}.pdf"`, 'cache-control': 'private, no-store' } });
   });
 
   r.add('POST', '/api/orders/:id/capture', async (req, env, ctx, p) => {
@@ -223,16 +236,18 @@ async function authOrder(req, env, id) {
 }
 
 export function publicOrder(o) {
-  return { number: o.number, status: o.status, currency: o.currency, groups: o.groups.map(({ name, code, qty, unit, total, lines }) => ({ name, code, qty, unit, total, lines })),
-    subtotal: o.subtotal, shipping: { service: o.shipping?.service, eta: o.shipping?.eta }, shippingAmount: o.shippingAmount, taxAmount: o.taxAmount, total: o.total,
-    tracking: o.tracking || null, createdAt: o.createdAt, payUrl: o.status === 'pending_payment' ? o.payUrl : null };
+  const { address, ...rest } = customerOrder(o);
+  return rest;
 }
 
 export async function markPaid(env, ctx, o, payment) {
-  const next = await updateOrder(env, o.id, { status: 'paid', paidAt: new Date().toISOString(), payment }, { type: 'paid', data: payment });
+  let next = await updateOrder(env, o.id, { status: 'paid', paidAt: new Date().toISOString(), payment }, { type: 'paid', data: payment });
   const settings = await getSettings(env);
+  next.invoiceNo = await ensureInvoiceNo(env, next, settings);
+  next.accountUrl = `${(settings.store.siteUrl || env.SITE_URL).replace(/\/$/, '')}/order/?id=${o.id}&t=${o.token}`;
+  const attachments = [{ filename: `Invoice-${o.number}.pdf`, content: b64(invoicePdf(next, settings)) }];
   ctx?.waitUntil?.(Promise.all([
-    sendEmail(env, { to: o.customer.email, replyTo: settings.store.email, subject: `${settings.store.name} order ${o.number} confirmed`, html: orderEmailHtml(next, settings, 'Thank you — your order is confirmed') }),
+    sendEmail(env, { to: o.customer.email, replyTo: settings.store.email, subject: `${settings.store.name} order ${o.number} confirmed`, html: orderEmailHtml(next, settings, 'Thank you — your order is confirmed'), attachments }),
     sendEmail(env, { to: settings.orders?.notifyEmail || settings.store.email, subject: `New paid order ${o.number} — ${o.currency} ${o.total}`, html: orderEmailHtml(next, settings, `New order from ${o.customer.name}`) }),
   ]).catch(() => {}));
   return next;

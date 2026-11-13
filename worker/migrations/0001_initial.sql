@@ -1,4 +1,4 @@
--- S Creation D1 schema. Apply with: npx wrangler d1 execute screation --remote --file=schema.sql
+-- S Creation D1 schema (initial). Applied by: npx wrangler d1 migrations apply screation --remote
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL,

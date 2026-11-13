@@ -49,13 +49,13 @@ export async function getOrder(env, id) {
   const r = await env.DB.prepare('SELECT * FROM orders WHERE id = ?').bind(id).first();
   return r ? rowToOrder(r) : null;
 }
-export function rowToOrder(r) { return { ...JSON.parse(r.data), id: r.id, number: r.number, status: r.status, gatewayRef: r.gateway_ref, token: r.token, createdAt: r.created_at, updatedAt: r.updated_at }; }
+export function rowToOrder(r) { return { ...JSON.parse(r.data), id: r.id, number: r.number, status: r.status, gatewayRef: r.gateway_ref, token: r.token, customerId: r.customer_id ?? null, invoiceNo: r.invoice_no ?? null, createdAt: r.created_at, updatedAt: r.updated_at }; }
 
 export async function updateOrder(env, id, patch, event) {
   const o = await getOrder(env, id);
   if (!o) return null;
   const next = { ...o, ...patch };
-  const { id: _i, number: _n, token: _t, createdAt: _c, updatedAt: _u, gatewayRef, ...data } = next;
+  const { id: _i, number: _n, token: _t, createdAt: _c, updatedAt: _u, gatewayRef, customerId: _cu, invoiceNo: _in, ...data } = next;
   await env.DB.prepare("UPDATE orders SET status = ?, gateway_ref = ?, data = ?, updated_at = datetime('now') WHERE id = ?")
     .bind(next.status, next.gatewayRef ?? null, JSON.stringify(data), id).run();
   if (event) await logEvent(env, id, event.type, event.data);

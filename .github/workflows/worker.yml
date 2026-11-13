@@ -15,8 +15,8 @@ jobs:
         with: { node-version: 22 }
       - run: npm ci || npm install
         working-directory: worker
-      - name: Apply database schema (idempotent)
-        run: npx wrangler d1 execute screation --remote --file=schema.sql
+      - name: Apply database migrations
+        run: npx wrangler d1 migrations apply screation --remote
         working-directory: worker
         env: { CLOUDFLARE_API_TOKEN: '${{ secrets.CLOUDFLARE_API_TOKEN }}', CLOUDFLARE_ACCOUNT_ID: '${{ secrets.CLOUDFLARE_ACCOUNT_ID }}' }
       - name: Deploy

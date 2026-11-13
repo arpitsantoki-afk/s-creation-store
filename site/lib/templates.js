@@ -85,7 +85,8 @@ ${S.store.announcement ? `<div class="announce">${esc(S.store.announcement)}</di
     <a href="${ctx.href('/contact/')}"${navActive('/contact/')}>${t(lang, 'contact')}</a>
   </nav>
   <div class="tools">${langSel}${curSel}
-    <a class="cartbtn" href="${ctx.href('/cart/')}">${t(lang, 'cart').toUpperCase()} <span class="n" data-cart-count>0</span></a>
+    <a class="acctbtn" href="${ctx.href('/account/')}" aria-label="${t(lang, 'account')}"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg><span data-acct-label>${t(lang, 'signIn')}</span></a>
+    <a class="cartbtn" href="${ctx.href('/cart/')}" aria-label="${t(lang, 'cart')}"><span class="lbl">${t(lang, 'cart').toUpperCase()}</span><svg class="ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 7h14l-1.5 13h-11z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg> <span class="n" data-cart-count>0</span></a>
     <button class="burger" aria-label="Menu" aria-controls="nav" aria-expanded="false">☰</button>
   </div>
 </div></header>

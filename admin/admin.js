@@ -1,4 +1,5 @@
 // S Creation dashboard — single-page app talking to the Worker API.
+import { CARRIERS, trackingUrl } from '../assets/js/carriers.js';
 const API = (localStorage.getItem('sc_admin_api') || window.SC?.api || '').replace(/\/$/, '');
 const SITE = (window.SC?.base || '');
 const app = document.getElementById('app');
@@ -98,18 +99,23 @@ function wireReps(root, obj, rerender, blanks = {}) {
 }
 const money = (v, c) => { try { return new Intl.NumberFormat('en', { style: 'currency', currency: c, maximumFractionDigits: 2 }).format(v); } catch { return `${c} ${v}`; } };
 const date = (s) => (s ? new Date(s.replace(' ', 'T') + (s.includes('Z') ? '' : 'Z')).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) : '');
+const GOOGLE_SVG = `<svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.4 5.7c4.3-4 6.9-9.9 6.9-17.1z"/><path fill="#FBBC05" d="M10.6 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.4-5.7c-2.1 1.4-4.8 2.3-8.5 2.3-6.2 0-11.5-4.1-13.4-9.8l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg>`;
 const STATUS = ['pending_payment', 'paid', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded'];
 
 // ---------- shell ----------
 let unread = 0;
+const can = (perm) => (user?.perms || []).includes(perm);
+const NAV = [['dashboard', 'Dashboard', 'dashboard'], ['orders', 'Orders', 'orders'], ['customers', 'Customers', 'orders'], ['products', 'Products', 'products'], ['messages', 'Messages', 'messages'],
+  ['settings', 'Settings', 'settings'], ['team', 'Team', 'team'], ['publish', 'Publish', 'publish']];
 function shell(active, title, inner, actions = '') {
-  const nav = [['dashboard', 'Dashboard'], ['orders', 'Orders'], ['products', 'Products'], ['messages', 'Messages'], ['settings', 'Settings'], ['publish', 'Publish']];
-  app.innerHTML = `<div class="shell"><aside class="side"><div class="logo"><i></i>S CREATION</div>
-    ${nav.map(([k, n]) => `<a href="#/${k}" class="${active === k ? 'on' : ''}">${n}${k === 'messages' && unread ? `<span class="badge">${unread}</span>` : ''}</a>`).join('')}
-    <div class="foot">${esc(user?.email || '')}<br><a href="${SITE}/" target="_blank">View site ↗</a> · <a href="#" data-logout>Sign out</a></div></aside>
-    <div class="main"><div class="top"><div class="title">${title}</div>${actions}<button class="btn accent" data-publish>Publish site</button></div><div class="content">${inner}</div></div></div>`;
+  app.innerHTML = `<div class="shell"><aside class="side"><div class="logo"><i></i>S CREATION<button class="menu" aria-label="Menu" data-menu>☰</button></div>
+    <nav class="sidenav">${NAV.filter((n) => can(n[2])).map(([k, n]) => `<a href="#/${k}" class="${active === k ? 'on' : ''}">${n}${k === 'messages' && unread ? `<span class="badge">${unread}</span>` : ''}</a>`).join('')}
+    <a href="#/me" class="${active === 'me' ? 'on' : ''}">My account</a></nav>
+    <div class="foot">${esc(user?.name || user?.email || '')}<br><span class="mono">${esc(user?.role || '')}</span><br><a href="${SITE}/" target="_blank">View site ↗</a> · <a href="#" data-logout>Sign out</a></div></aside>
+    <div class="main"><div class="top"><div class="title">${title}</div>${actions}${can('publish') ? '<button class="btn accent" data-publish>Publish site</button>' : ''}</div><div class="content">${inner}</div></div></div>`;
   $('[data-logout]').onclick = (e) => { e.preventDefault(); logout(); };
-  $('[data-publish]').onclick = publish;
+  $('[data-menu]').onclick = () => $('.side').classList.toggle('open');
+  const pb = $('[data-publish]'); if (pb) pb.onclick = publish;
 }
 async function publish() {
   if (dirty && !confirm('You have unsaved changes on this page. Publish anyway?')) return;
@@ -124,10 +130,15 @@ async function getSettings(force = false) {
 // ---------- auth screens ----------
 async function renderAuth() {
   if (!API) { app.innerHTML = `<div class="login"><div class="box"><div class="logo"><i></i>S CREATION</div><p>API URL not configured. Set <code>store.apiUrl</code> in settings, or run <code>localStorage.sc_admin_api='https://api.example.com'</code> in the console.</p></div></div>`; return; }
-  let hasAdmin = true;
-  try { hasAdmin = (await api('/api/admin/status')).hasAdmin; } catch (e) { app.innerHTML = `<div class="login"><div class="box"><div class="logo"><i></i>S CREATION</div><div class="errbox">Cannot reach the API at ${esc(API)}: ${esc(e.message)}</div></div></div>`; return; }
+  let hasAdmin = true, google = false;
+  const frag = new URLSearchParams(location.hash.slice(1));
+  const gErr = frag.get('error');
+  if (gErr) history.replaceState(null, '', location.pathname);
+  try { const st = await api('/api/admin/status'); hasAdmin = st.hasAdmin; google = st.google; } catch (e) { app.innerHTML = `<div class="login"><div class="box"><div class="logo"><i></i>S CREATION</div><div class="errbox">Cannot reach the API at ${esc(API)}: ${esc(e.message)}</div></div></div>`; return; }
   app.innerHTML = `<div class="login"><form class="box stack" id="auth"><div class="logo"><i></i>S CREATION</div>
     <h1 style="font-size:24px">${hasAdmin ? 'Sign in' : 'Create the owner account'}</h1>
+    ${gErr ? `<div class="errbox">${esc(gErr)}</div>` : ''}
+    ${hasAdmin && google ? `<a class="btn ghost" style="height:44px;justify-content:center" href="${API}/api/auth/google?for=admin&return=${encodeURIComponent(location.origin + location.pathname)}">${GOOGLE_SVG} Continue with Google</a><div class="mono muted" style="text-align:center">or with email</div>` : ''}
     ${hasAdmin ? '' : '<p class="muted">First-time setup. Use the SETUP_TOKEN secret you set on the Worker.</p><label class="f">Name<input class="i" name="name"></label>'}
     <label class="f">Email<input class="i" name="email" type="email" required autocomplete="username"></label>
     <label class="f">Password${hasAdmin ? '' : ' <small>min. 10 characters</small>'}<input class="i" name="password" type="password" required autocomplete="${hasAdmin ? 'current-password' : 'new-password'}"></label>
@@ -166,7 +177,8 @@ async function viewDashboard() {
       ${ok(integ.paypal.configured, 'PayPal', integ.paypal.configured ? integ.paypal.mode : 'add PAYPAL_CLIENT_ID / SECRET')}
       ${ok(integ.dhl.configured, 'DHL Express', integ.dhl.configured ? integ.dhl.env : 'add DHL_API_KEY / SECRET / ACCOUNT — manual zone rates in use')}
       ${ok(integ.github.configured, 'Publishing (GitHub)', integ.github.repo || 'add GITHUB_TOKEN')}
-      ${ok(integ.email.configured, 'Order emails (Resend)', integ.email.from || 'optional')}
+      ${ok(integ.email.configured, 'Emails — orders, invoices, password resets (Resend)', integ.email.from || 'add RESEND_API_KEY + EMAIL_FROM')}
+      ${ok(integ.google.configured, 'Google sign-in', integ.google.configured ? 'customers + team' : 'add GOOGLE_CLIENT_ID / SECRET')}
       ${ok(integ.fx.source !== 'fallback', 'Exchange rates', `${integ.fx.source || ''} ${integ.fx.updated ? '· ' + integ.fx.updated : ''}`)}
       ${ok(pc('published') > 0, 'Products published', pc('published') ? '' : '<a href="#/products">import or add products</a>')}
       <p class="muted" style="margin:12px 0 0;font-size:12px">Stripe webhook: <code>${esc(integ.webhooks.stripe)}</code><br>PayPal webhook: <code>${esc(integ.webhooks.paypal)}</code></p>
@@ -175,7 +187,7 @@ async function viewDashboard() {
 function ordersTable(orders) {
   if (!orders.length) return '<div class="empty">No orders yet.</div>';
   return `<div class="wrapt"><table class="t"><thead><tr><th>Order</th><th>Date</th><th>Customer</th><th>Country</th><th class="r">Pcs</th><th class="r">Total</th><th>Status</th></tr></thead><tbody>
-    ${orders.map((o) => `<tr class="click" data-href="#/orders/${o.id}"><td><b>${esc(o.number)}</b></td><td>${date(o.createdAt)}</td><td>${esc(o.name)}<div class="muted" style="font-size:12px">${esc(o.company || o.email)}</div></td><td>${esc(o.country)}</td><td class="r">${o.qty}</td><td class="r">${money(o.total, o.currency)}</td><td><span class="tag ${o.status}">${o.status.replace('_', ' ')}</span></td></tr>`).join('')}
+    ${orders.map((o) => `<tr class="click" data-href="#/orders/${o.id}"><td><b>${esc(o.number)}</b></td><td>${date(o.createdAt)}</td><td>${esc(o.name)} ${o.account ? '<span class="mono muted" title="has an account">●</span>' : ''}<div class="muted" style="font-size:12px">${esc(o.company || o.email)}</div></td><td>${esc(o.country)}</td><td class="r">${o.qty}</td><td class="r">${money(o.total, o.currency)}</td><td><span class="tag ${o.status}">${o.status.replace('_', ' ')}</span></td></tr>`).join('')}
   </tbody></table></div>`;
 }
 document.addEventListener('click', (e) => { const tr = e.target.closest('tr[data-href]'); if (tr) location.hash = tr.dataset.href; });
@@ -195,9 +207,21 @@ async function viewOrders() {
 }
 async function viewOrder(id) {
   const { order: o, events } = await api('/api/admin/orders/' + id);
-  const a = o.address, c = o.customer;
+  const a = o.address, c = o.customer, sh = o.shipment || (o.tracking ? { carrier: 'dhl', tracking: o.tracking } : {});
+  const paid = !['pending_payment', 'cancelled'].includes(o.status);
+  const docBtn = (kind, label, cls = 'btn ghost sm') => `<button class="${cls}" data-doc="${kind}">${label}</button>`;
   shell('orders', `<a href="#/orders" style="text-decoration:none">Orders</a> / ${esc(o.number)} <span class="tag ${o.status}">${o.status.replace('_', ' ')}</span>`, `
-  <div class="grid2" style="grid-template-columns:1.4fr 1fr;align-items:start">
+  <div class="card" style="padding:14px 20px"><div class="row">
+    <span class="mono muted">Quick actions</span>
+    ${o.status === 'paid' ? '<button class="btn sm" data-st="processing">Mark processing</button>' : ''}
+    ${o.status === 'shipped' ? '<button class="btn sm" data-st="delivered">Mark delivered</button>' : ''}
+    ${paid ? docBtn('invoice', 'Tax invoice (PDF)') : ''}${docBtn('packing-slip', 'Packing slip (PDF)')}
+    ${o.shipmentDocs?.label ? docBtn('label', 'DHL label (PDF)', 'btn accent sm') : ''}${o.shipmentDocs?.['commercial-invoice'] || o.shipmentDocs?.invoice ? docBtn('commercial-invoice', 'DHL commercial invoice') : ''}
+    <span class="spacer"></span>
+    <button class="btn ghost sm" data-mail="confirmation">Resend confirmation</button>
+    ${['pending_payment', 'paid', 'processing'].includes(o.status) ? '<button class="btn danger sm" data-st="cancelled">Cancel order</button>' : ''}
+  </div>${o.invoiceNo ? `<div class="muted" style="font-size:12px;margin-top:6px">Invoice ${esc(o.invoiceNo)}</div>` : ''}</div>
+  <div class="grid2" style="grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);align-items:start">
     <div>
       <div class="card"><h2>Items <span class="muted mono">${o.groups.reduce((s, g) => s + g.qty, 0)} pcs · ${(o.weightG / 1000).toFixed(1)} kg</span></h2>
         ${o.groups.map((g) => {
@@ -206,51 +230,110 @@ async function viewOrder(id) {
           <div class="wrapt" style="margin-top:8px"><table class="t"><thead><tr><th>Colour</th>${sizes.map((s) => `<th class="r">${esc(s)}</th>`).join('')}<th class="r">Total</th></tr></thead><tbody>
           ${colors.map((col) => `<tr><td>${esc(col)}</td>${sizes.map((s) => `<td class="r">${g.lines.find((l) => l.color === col && l.size === s)?.qty || ''}</td>`).join('')}<td class="r"><b>${g.lines.filter((l) => l.color === col).reduce((x, l) => x + l.qty, 0)}</b></td></tr>`).join('')}
           </tbody></table></div></div>`; }).join('')}
-        <table class="t" style="max-width:360px;margin-left:auto"><tbody>
+        <table class="t" style="max-width:380px;margin-left:auto"><tbody>
           <tr><td>Subtotal</td><td class="r">${money(o.subtotal, o.currency)}</td></tr>
           <tr><td>Shipping · ${esc(o.shipping.service)}</td><td class="r">${money(o.shippingAmount, o.currency)}</td></tr>
           ${o.taxAmount ? `<tr><td>${esc(o.taxLabel)}</td><td class="r">${money(o.taxAmount, o.currency)}</td></tr>` : ''}
           <tr><td><b>Total</b></td><td class="r"><b>${money(o.total, o.currency)}</b></td></tr></tbody></table>
         ${o.currency !== 'INR' && o.fxRate ? `<p class="muted" style="font-size:12px;text-align:right">≈ ${money(o.total / o.fxRate, 'INR')} at checkout rate</p>` : ''}
       </div>
+      <div class="card"><h2>Shipping & tracking ${sh.tracking ? `<a class="btn ghost sm" target="_blank" rel="noopener" href="${esc(trackingUrl(sh))}">Track ↗</a>` : ''}</h2>
+        <form id="shipform" class="stack">
+          <div class="grid3"><label class="f">Carrier<select class="i" name="carrier">${Object.entries(CARRIERS).map(([k, v]) => `<option value="${k}" ${(sh.carrier || 'dhl') === k ? 'selected' : ''}>${esc(v.name)}</option>`).join('')}</select></label>
+            <label class="f">Service<input class="i" name="service" value="${esc(sh.service || o.shipping.service || '')}"></label>
+            <label class="f">Tracking number<input class="i" name="tracking" value="${esc(sh.tracking || '')}"></label></div>
+          <div class="grid4"><label class="f">Ship date<input class="i" type="date" name="shippedAt" value="${esc((sh.shippedAt || '').slice(0, 10))}"></label>
+            <label class="f">Boxes<input class="i" type="number" name="boxes" min="1" value="${esc(sh.boxes || '')}"></label>
+            <label class="f">Weight (kg)<input class="i" type="number" step="0.1" name="weightKg" value="${esc(sh.weightKg || '')}"></label>
+            <label class="f">Tracking URL <small>for “Other”</small><input class="i" name="trackingUrl" value="${esc(sh.trackingUrl || '')}" placeholder="https://"></label></div>
+          <div class="row"><label class="check"><input type="checkbox" name="notify" checked> Email the customer when marked shipped</label><span class="spacer"></span>
+            <button class="btn">Save shipping details</button>
+            ${!sh.tracking && paid ? `<button type="button" class="btn accent" id="oship" title="Books the DHL shipment, creates the label and commercial invoice">Generate DHL label</button>` : ''}</div>
+          <p class="muted" style="font-size:12px;margin:0">Adding a tracking number to a paid order marks it shipped. DHL labels need the DHL API keys; for other couriers enter the details by hand.</p>
+        </form></div>
       <div class="card"><h2>Timeline</h2><ul class="timeline">
         <li><b>Order created</b> <span class="muted">${date(o.createdAt)}</span></li>
         ${events.map((e) => `<li><b>${esc(e.type.replace(/_/g, ' '))}</b> <span class="muted">${date(e.created_at)}</span>${e.data ? `<div class="mix">${esc(Object.entries(e.data).filter(([k]) => !['raw'].includes(k)).map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`).join(' · '))}</div>` : ''}</li>`).join('')}
       </ul></div>
     </div>
     <div>
-      <div class="card"><h2>Fulfilment</h2><div class="stack">
-        <label class="f">Status<select class="i" id="ostatus">${STATUS.map((s) => `<option value="${s}" ${s === o.status ? 'selected' : ''}>${s.replace('_', ' ')}</option>`).join('')}</select></label>
-        <label class="f">DHL tracking number<input class="i" id="otrack" value="${esc(o.tracking || '')}"></label>
-        <label class="f">Internal note<textarea class="i" id="onote" rows="3">${esc(o.internalNote || '')}</textarea></label>
-        <label class="check"><input type="checkbox" id="onotify" checked> Email the customer when marked shipped</label>
-        <div class="row"><button class="btn" id="osave">Save</button>
-          ${!o.tracking && ['paid', 'processing'].includes(o.status) ? '<button class="btn accent" id="oship">Create DHL shipment</button>' : ''}
-          ${o.tracking ? `<a class="btn ghost" target="_blank" rel="noopener" href="https://www.dhl.com/global-en/home/tracking/tracking-express.html?tracking-id=${encodeURIComponent(o.tracking)}">Track ↗</a>` : ''}</div>
-        ${o.shipmentDocs?.label ? `<div class="row"><button class="btn ghost sm" data-doc="label">Shipping label (PDF)</button>${o.shipmentDocs.invoice ? '<button class="btn ghost sm" data-doc="invoice">Commercial invoice (PDF)</button>' : ''}</div>` : ''}
-        <p class="muted" style="font-size:12px;margin:0">DHL shipment uses ${esc(o.shipping.carrier === 'dhl' ? o.shipping.service : 'DHL Express Worldwide')}; boxes are packed from product weights.</p>
-      </div></div>
-      <div class="card"><h2>Customer</h2>
+      <div class="card"><h2>Status</h2><div class="stack">
+        <select class="i" id="ostatus">${STATUS.map((s) => `<option value="${s}" ${s === o.status ? 'selected' : ''}>${s.replace('_', ' ')}</option>`).join('')}</select>
+        <label class="f">Internal note <small>only your team sees this</small><textarea class="i" id="onote" rows="3">${esc(o.internalNote || '')}</textarea></label>
+        <button class="btn" id="osave" style="justify-self:start">Save</button></div></div>
+      <div class="card"><h2>Customer ${o.customerId ? '<span class="tag published">account</span>' : '<span class="tag archived">guest</span>'}</h2>
         <div><b>${esc(c.name)}</b>${c.company ? ` · ${esc(c.company)}` : ''}</div>
         <div><a href="mailto:${esc(c.email)}">${esc(c.email)}</a> · ${esc(c.phone)}</div>${c.taxId ? `<div class="muted">Tax ID: ${esc(c.taxId)}</div>` : ''}
-        <h3 style="margin-top:16px">Ship to</h3><div>${[a.name, a.company, a.line1, a.line2, [a.city, a.state, a.postcode].filter(Boolean).join(', '), a.country].filter(Boolean).map(esc).join('<br>')}</div>
+        <h3 style="margin-top:16px;display:flex;justify-content:space-between">Ship to <button class="btn ghost sm" id="editaddr">Edit</button></h3>
+        <div id="addrview">${[a.name, a.company, a.line1, a.line2, [a.city, a.state, a.postcode].filter(Boolean).join(', '), a.country, a.phone].filter(Boolean).map(esc).join('<br>')}</div>
+        <form id="addrform" class="stack" hidden>${['name', 'company', 'line1', 'line2', 'city', 'state', 'postcode', 'country', 'phone'].map((k) => `<label class="f">${k}<input class="i" name="${k}" value="${esc(a[k] || '')}"></label>`).join('')}<button class="btn sm" style="justify-self:start">Save address</button></form>
         ${o.notes ? `<h3 style="margin-top:16px">Customer note</h3><div class="note">${esc(o.notes)}</div>` : ''}
       </div>
       <div class="card"><h2>Payment</h2><div>${esc(o.gateway)} · ${esc(o.currency)}</div><div class="muted" style="font-size:12px;word-break:break-all">${esc(o.gatewayRef || '')}${o.payment?.paymentIntent ? '<br>' + esc(o.payment.paymentIntent) : ''}${o.payment?.captureId ? '<br>' + esc(o.payment.captureId) : ''}</div>
         ${o.paidAt ? `<div class="muted">Paid ${date(o.paidAt)}</div>` : ''}<p class="muted" style="font-size:12px">Refunds are issued from the Stripe or PayPal dashboard; then set the status to “refunded”.</p></div>
     </div></div>`);
-  $('#osave').onclick = async () => {
-    try { await api('/api/admin/orders/' + id, { method: 'PATCH', body: { status: $('#ostatus').value, tracking: $('#otrack').value, internalNote: $('#onote').value, notify: $('#onotify').checked } }); toast('Order updated'); viewOrder(id); }
-    catch (e) { toast(e.message, true); }
-  };
+  const patch = async (body, msg) => { try { await api('/api/admin/orders/' + id, { method: 'PATCH', body }); toast(msg); viewOrder(id); } catch (e) { toast(e.message, true); } };
+  $('#osave').onclick = () => patch({ status: $('#ostatus').value, internalNote: $('#onote').value, notify: true }, 'Order updated');
+  $$('[data-st]').forEach((b) => (b.onclick = () => { if (b.dataset.st === 'cancelled' && !confirm('Cancel this order? Refund any payment in Stripe/PayPal first.')) return; patch({ status: b.dataset.st }, 'Status updated'); }));
+  $('#shipform').onsubmit = (e) => { e.preventDefault(); const v = Object.fromEntries(new FormData(e.target)); patch({ shipment: v, notify: !!v.notify }, 'Shipping details saved'); };
+  $('#editaddr').onclick = () => { $('#addrform').hidden = !$('#addrform').hidden; $('#addrview').hidden = !$('#addrform').hidden; };
+  $('#addrform').onsubmit = (e) => { e.preventDefault(); patch({ address: Object.fromEntries(new FormData(e.target)) }, 'Address updated'); };
+  $$('[data-mail]').forEach((b) => (b.onclick = async () => { try { await api(`/api/admin/orders/${id}/email`, { method: 'POST', body: { type: b.dataset.mail } }); toast('Email sent'); } catch (e) { toast(e.message, true); } }));
   const ship = $('#oship');
   if (ship) ship.onclick = async () => {
-    if (!confirm('Create a DHL Express shipment and label for this order?')) return;
+    if (!confirm('Book a DHL Express shipment for this order and create the label?')) return;
     ship.disabled = true; ship.textContent = 'Creating…';
-    try { await api(`/api/admin/orders/${id}/shipment`, { method: 'POST' }); toast('DHL shipment created'); viewOrder(id); }
-    catch (e) { toast(e.message, true); ship.disabled = false; ship.textContent = 'Create DHL shipment'; }
+    try { await api(`/api/admin/orders/${id}/shipment`, { method: 'POST' }); toast('DHL shipment created — label ready'); viewOrder(id); }
+    catch (e) { toast(e.message, true); ship.disabled = false; ship.textContent = 'Generate DHL label'; }
   };
-  $$('[data-doc]').forEach((b) => (b.onclick = async () => { const r = await api(`/api/admin/orders/${id}/doc/${b.dataset.doc}`, { raw: true }); window.open(URL.createObjectURL(await r.blob())); }));
+  $$('[data-doc]').forEach((b) => (b.onclick = async () => {
+    const w = window.open('', '_blank');
+    try { const r = await api(`/api/admin/orders/${id}/doc/${b.dataset.doc}`, { raw: true }); if (!r.ok) throw new Error((await r.json()).error); const u = URL.createObjectURL(await r.blob()); if (w) w.location = u; else window.open(u); }
+    catch (e) { w?.close(); toast(e.message, true); }
+  }));
+}
+
+// ---------- customers ----------
+async function viewCustomers() {
+  const q = new URLSearchParams(location.hash.split('?')[1] || '').get('q') || '';
+  const { customers } = await api('/api/admin/customers?q=' + encodeURIComponent(q));
+  shell('customers', 'Customers', `<form id="csearch" class="row" style="margin-bottom:16px"><input class="i" name="q" value="${esc(q)}" placeholder="Search name, email, company" style="max-width:320px"><button class="btn ghost sm">Search</button><span class="spacer"></span><span class="muted">${customers.length} account${customers.length === 1 ? '' : 's'}</span></form>
+    ${customers.length ? `<div class="wrapt"><table class="t"><thead><tr><th>Customer</th><th>Company</th><th>Sign-in</th><th class="r">Paid orders</th><th>Joined</th><th>Last sign-in</th></tr></thead><tbody>
+      ${customers.map((c) => `<tr class="click" data-href="#/orders?q=${encodeURIComponent(c.email)}"><td><b>${esc(c.name || '—')}</b><div class="muted" style="font-size:12px">${esc(c.email)} ${c.email_verified ? '✓' : '<span title="not verified">·</span>'}</div></td><td>${esc(c.company || '')}</td><td class="mono">${c.google ? 'Google' : 'Email'}</td><td class="r">${c.orders}</td><td>${date(c.created_at)}</td><td>${date(c.last_login)}</td></tr>`).join('')}
+    </tbody></table></div>` : '<div class="card empty">No customer accounts yet. Guests who check out without an account appear under Orders.</div>'}`);
+  $('#csearch').onsubmit = (e) => { e.preventDefault(); location.hash = '#/customers?q=' + encodeURIComponent(new FormData(e.target).get('q')); };
+}
+
+// ---------- team ----------
+async function viewTeam() {
+  const { members, roles, google } = await api('/api/admin/team');
+  const roleDesc = { owner: 'Everything, including team access', manager: 'Orders, products, settings, publishing', staff: 'Orders and messages only' };
+  shell('team', 'Team', `<div class="grid2" style="grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);align-items:start">
+    <div class="card"><h2>People with dashboard access</h2><div class="wrapt"><table class="t"><thead><tr><th>Person</th><th>Role</th><th>Sign-in</th><th>Status</th><th>Last sign-in</th><th></th></tr></thead><tbody>
+      ${members.map((m) => `<tr><td><b>${esc(m.name || '—')}</b><div class="muted" style="font-size:12px">${esc(m.email)}</div></td>
+        <td><select class="i" data-role="${m.id}" ${m.email === user.email ? 'disabled' : ''} style="height:32px;min-width:120px">${Object.keys(roles).map((r) => `<option ${m.role === r ? 'selected' : ''}>${r}</option>`).join('')}</select></td>
+        <td class="mono">${[m.google ? 'Google' : '', m.password ? 'Password' : ''].filter(Boolean).join(' + ') || '—'}</td>
+        <td><span class="tag ${m.status === 'active' ? 'published' : m.status === 'invited' ? 'draft' : 'archived'}">${m.status}</span></td><td>${date(m.last_login)}</td>
+        <td class="r">${m.email === user.email ? '<span class="muted">you</span>' : `<button class="btn ghost sm" data-toggle="${m.id}" data-to="${m.status === 'disabled' ? 'active' : 'disabled'}">${m.status === 'disabled' ? 'Enable' : 'Disable'}</button> <button class="btn danger sm" data-rm="${m.id}">Remove</button>`}</td></tr>`).join('')}
+    </tbody></table></div>
+    <div class="stack" style="margin-top:14px;font-size:13px">${Object.entries(roleDesc).map(([r, d]) => `<div><span class="tag">${r}</span> <span class="muted">${d}</span></div>`).join('')}</div></div>
+    <div class="card"><h2>Invite someone</h2><form id="invite" class="stack">
+      <label class="f">Email<input class="i" name="email" type="email" required placeholder="name@gmail.com"></label>
+      <label class="f">Name<input class="i" name="name"></label>
+      <label class="f">Role<select class="i" name="role">${Object.keys(roles).map((r) => `<option ${r === 'staff' ? 'selected' : ''}>${r}</option>`).join('')}</select></label>
+      <label class="f">Password <small>${google ? 'optional — leave empty to sign in with Google only' : 'required until Google sign-in is configured'} (10+ chars)</small><input class="i" name="password" type="password" autocomplete="new-password" ${google ? '' : 'required'}></label>
+      <button class="btn accent" style="justify-self:start">Give access</button>
+      <p class="muted" style="font-size:12px;margin:0">${google ? 'They sign in at /admin with “Continue with Google” using this exact email.' : 'Google sign-in is not configured yet (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET).'}</p></form></div></div>`);
+  $('#invite').onsubmit = async (e) => { e.preventDefault(); try { await api('/api/admin/team', { method: 'POST', body: Object.fromEntries(new FormData(e.target)) }); toast('Access granted'); viewTeam(); } catch (ex) { toast(ex.message, true); } };
+  $$('[data-role]').forEach((s) => (s.onchange = async () => { try { await api('/api/admin/team/' + s.dataset.role, { method: 'PATCH', body: { role: s.value } }); toast('Role updated'); } catch (ex) { toast(ex.message, true); viewTeam(); } }));
+  $$('[data-toggle]').forEach((b) => (b.onclick = async () => { try { await api('/api/admin/team/' + b.dataset.toggle, { method: 'PATCH', body: { status: b.dataset.to } }); viewTeam(); } catch (ex) { toast(ex.message, true); } }));
+  $$('[data-rm]').forEach((b) => (b.onclick = async () => { if (!confirm('Remove dashboard access for this person?')) return; try { await api('/api/admin/team/' + b.dataset.rm, { method: 'DELETE' }); viewTeam(); } catch (ex) { toast(ex.message, true); } }));
+}
+
+async function viewMe() {
+  shell('me', 'My account', `<div class="card" style="max-width:560px"><h2>${esc(user.name || user.email)}</h2><p class="muted">${esc(user.email)} · ${esc(user.role)}</p>
+    <form id="chpw" class="stack"><h3>Set or change password</h3><input class="i" name="current" type="password" placeholder="Current password (leave empty if you only use Google)" autocomplete="current-password"><input class="i" name="next" type="password" placeholder="New password (10+ characters)" required autocomplete="new-password"><button class="btn sm" style="justify-self:start">Update password</button></form></div>`);
+  $('#chpw').onsubmit = async (e) => { e.preventDefault(); try { const d = await api('/api/admin/password', { method: 'POST', body: Object.fromEntries(new FormData(e.target)) }); token = d.token; sessionStorage.setItem('sc_admin_token', token); toast('Password updated — other sessions were signed out'); e.target.reset(); } catch (ex) { toast(ex.message, true); } };
 }
 
 // ---------- products ----------
@@ -468,7 +551,7 @@ async function viewSettings() {
   const S = structuredClone(await getSettings(true));
   const integ = await api('/api/admin/integrations');
   dirty = false;
-  const tabs = [['store', 'Store'], ['currency', 'Currencies'], ['lang', 'Languages'], ['pay', 'Payments'], ['ship', 'Shipping'], ['tax', 'Tax'], ['content', 'Content & pages'], ['seo', 'SEO & analytics'], ['team', 'Team'], ['raw', 'Advanced']];
+  const tabs = [['store', 'Store'], ['currency', 'Currencies'], ['lang', 'Languages'], ['pay', 'Payments'], ['ship', 'Shipping'], ['tax', 'Tax'], ['content', 'Content & pages'], ['seo', 'SEO & analytics'], ['accounts', 'Accounts & invoices'], ['raw', 'Advanced']];
   const render = () => {
     const allLangs = { en: 'English', de: 'Deutsch', fr: 'Français', es: 'Español' };
     const panes = {
@@ -510,7 +593,12 @@ async function viewSettings() {
         <div class="grid2">${F.text('analytics.ga4', 'Google Analytics 4 ID', { ph: 'G-XXXXXXX' })}${F.text('analytics.cloudflareToken', 'Cloudflare Web Analytics token')}</div>
         ${F.bool('publish.nightly', 'Rebuild the site nightly (refreshes converted prices in feeds & structured data)')}
         <p class="muted" style="font-size:12px">Submit <code>${esc(S.store.siteUrl)}/sitemap.xml</code> in Google Search Console and Bing Webmaster Tools. Merchant Center feeds: <code>${esc(S.store.siteUrl)}/feeds/google-USD.xml</code> (one per currency). AI assistants read <code>/llms.txt</code> and <code>/catalog.json</code>.</p></div>`,
-      team: `<div id="team">Loading…</div>`,
+      accounts: `<div class="grid2" style="align-items:start"><div class="card"><h2>Customer accounts</h2><div class="stack">${F.bool('auth.customerAccounts', 'Let buyers create accounts (email/password and Google)')}
+          <p class="muted" style="font-size:12px">Google sign-in needs GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET Worker secrets — status: ${dot(integ.google.configured)}</p>
+          ${F.csv('auth.adminDomains', 'Auto-approve dashboard sign-ins from these Google domains', { hint: 'e.g. screationindia.in — new people join as Staff. Leave empty to allow invited people only.' })}</div></div>
+        <div class="card"><h2>Invoices</h2><div class="stack"><div class="grid2">${F.text('invoice.prefix', 'Number prefix', { hint: 'SC/2026-27/0001' })}${F.text('invoice.gstin', 'GSTIN')}</div>
+          ${F.text('invoice.legalName', 'Legal name on invoice')}${F.area('invoice.address', 'Registered address', { rows: 3 })}${F.text('invoice.state', 'State (for CGST/SGST vs IGST)')}
+          ${F.text('invoice.lutNote', 'Export note (LUT)')}${F.text('invoice.footer', 'Footer note')}</div></div></div>`,
       raw: `<p class="muted">Full settings JSON — for bulk edits. Invalid JSON is ignored.</p><textarea class="i code" id="rawjson" rows="30">${esc(JSON.stringify(S, null, 2))}</textarea>`,
     };
     $('#sedit').innerHTML = `<div class="tabs">${tabs.map(([k, n]) => `<button data-tab="${k}" class="${stab === k ? 'on' : ''}">${n}</button>`).join('')}</div><div id="pane">${panes[stab]}</div>`;
@@ -519,7 +607,6 @@ async function viewSettings() {
     $$('[data-lang]').forEach((c) => (c.onchange = () => { const l = c.dataset.lang; S.languages.enabled = c.checked ? [...new Set([...S.languages.enabled, l])] : S.languages.enabled.filter((x) => x !== l); dirty = true; render(); }));
     const fxb = $('[data-fx]'); if (fxb) fxb.onclick = async () => { try { fxCache = (await api('/api/admin/fx/refresh', { method: 'POST' })).fx; toast('Rates refreshed'); render(); } catch (e) { toast(e.message, true); } };
     const raw = $('#rawjson'); if (raw) raw.oninput = () => { try { const v = JSON.parse(raw.value); Object.keys(S).forEach((k) => delete S[k]); Object.assign(S, v); raw.style.borderColor = ''; dirty = true; } catch { raw.style.borderColor = 'var(--err)'; } };
-    if (stab === 'team') renderTeam();
   };
   const dot = (b) => `<span class="dot ${b ? 'ok' : 'no'}"></span><span class="mono muted">${b ? 'connected' : 'not configured'}</span>`;
   shell('settings', 'Settings', `<div id="sedit"></div><div class="savebar"><span class="mono">Settings</span><span class="spacer"></span><button class="btn accent" id="ssave">Save settings</button></div>`);
@@ -530,17 +617,6 @@ async function viewSettings() {
     catch (e) { toast(e.message, true); }
   };
 }
-async function renderTeam() {
-  const { admins } = await api('/api/admin/admins');
-  $('#team').innerHTML = `<div class="grid2" style="align-items:start"><div class="card"><h2>Team</h2><div class="wrapt"><table class="t"><thead><tr><th>Email</th><th>Name</th><th>Last sign-in</th><th></th></tr></thead><tbody>
-    ${admins.map((a) => `<tr><td>${esc(a.email)}</td><td>${esc(a.name || '')}</td><td>${date(a.last_login)}</td><td class="r">${a.email === user?.email ? '<span class="muted">you</span>' : `<button class="btn danger sm" data-rmadmin="${a.id}">Remove</button>`}</td></tr>`).join('')}</tbody></table></div>
-    <form id="addadmin" class="stack" style="margin-top:16px"><h3>Add a team member</h3><div class="grid3"><input class="i" name="email" type="email" placeholder="Email" required><input class="i" name="name" placeholder="Name"><input class="i" name="password" type="password" placeholder="Temporary password (10+)" required></div><button class="btn sm" style="justify-self:start">Add</button></form></div>
-    <div class="card"><h2>Change your password</h2><form id="chpw" class="stack"><input class="i" name="current" type="password" placeholder="Current password" required><input class="i" name="next" type="password" placeholder="New password (10+ characters)" required><button class="btn sm" style="justify-self:start">Update password</button></form></div></div>`;
-  $('#addadmin').onsubmit = async (e) => { e.preventDefault(); try { await api('/api/admin/admins', { method: 'POST', body: Object.fromEntries(new FormData(e.target)) }); toast('Team member added'); renderTeam(); } catch (ex) { toast(ex.message, true); } };
-  $('#chpw').onsubmit = async (e) => { e.preventDefault(); try { await api('/api/admin/password', { method: 'POST', body: Object.fromEntries(new FormData(e.target)) }); toast('Password updated'); e.target.reset(); } catch (ex) { toast(ex.message, true); } };
-  $$('[data-rmadmin]').forEach((b) => (b.onclick = async () => { if (confirm('Remove this team member?')) { await api('/api/admin/admins/' + b.dataset.rmadmin, { method: 'DELETE' }); renderTeam(); } }));
-}
-
 // ---------- publish ----------
 async function viewPublish() {
   const st = await api('/api/admin/publish');
@@ -554,19 +630,27 @@ async function viewPublish() {
 
 // ---------- router ----------
 async function route() {
+  const frag = new URLSearchParams(location.hash.slice(1));
+  if (frag.get('token')) { token = frag.get('token'); sessionStorage.setItem('sc_admin_token', token); history.replaceState(null, '', location.pathname + '#/dashboard'); }
   if (!token) return renderAuth();
   if (!user) { try { user = (await api('/api/admin/me')).user; } catch { return; } }
   const [path] = location.hash.replace(/^#\/?/, '').split('?');
   const [view, id] = path.split('/');
   try {
+    const need = (NAV.find((n) => n[0] === view) || [])[2];
+    if (need && !can(need)) { shell(view, 'No access', `<div class="card empty">Your role (${esc(user.role)}) doesn't include ${esc(view)}. Ask an owner to change it.</div>`); return; }
     if (view === 'orders' && id) await viewOrder(id);
     else if (view === 'orders') await viewOrders();
+    else if (view === 'customers') await viewCustomers();
     else if (view === 'products' && id) await viewProduct(id);
     else if (view === 'products') await viewProducts();
     else if (view === 'messages') await viewMessages();
     else if (view === 'settings') await viewSettings();
+    else if (view === 'team') await viewTeam();
     else if (view === 'publish') await viewPublish();
-    else await viewDashboard();
+    else if (view === 'me') await viewMe();
+    else if (can('dashboard')) await viewDashboard();
+    else location.hash = '#/orders';
   } catch (e) { toast(e.message, true); }
 }
 window.addEventListener('hashchange', () => { if (dirty && !confirm('Discard unsaved changes?')) return; dirty = false; route(); });
