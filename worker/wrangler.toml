@@ -1,3 +1,4 @@
+# Deployed by .github/workflows/worker.yml (see .github/scripts/deploy-worker.sh)
 name = "screation-api"
 main = "src/index.js"
 compatibility_date = "2025-09-01"
