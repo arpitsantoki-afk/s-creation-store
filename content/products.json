@@ -1,0 +1,249 @@
+[
+  {
+    "id": "sc-01", "code": "SC-01", "slug": "aurum-pima-polo", "status": "published", "sort": 1,
+    "name": "Aurum Pima Polo", "line": "Aurum", "type": "Polo", "category": "polos", "gender": "Men's", "sleeve": "Half sleeve",
+    "tagline": "Pima cotton, gold-finish bio wash, built to keep its shape.",
+    "short": "A 260 GSM polo in 100% Pima cotton with a gold-finish double bio wash and a modern regular fit.",
+    "description": "Aurum is made from Pima cotton, chosen for its premium touch. It's cut in a regular fit that we've refined for a modern shape.\n\nThe fabric is knitted on Mayer & Cie German machines and finished with a double bio wash (gold), so it feels soft and broken-in from the first wear. We dye it with High Q+ dyes, which keep the colour fast and the polo looking new for longer.\n\nA jacquard collar and cuffs and bartacked side slits finish it off, so it holds its shape and lasts.",
+    "fabric": "100% Pima cotton", "gsm": 260, "fit": "Regular fit, refined for a modern shape",
+    "features": ["100% Pima cotton, 260 GSM", "Regular fit, refined for a modern shape", "Double bio wash (gold finish)", "Knitted on Mayer & Cie German machines", "High Q+ dyes for colour fastness", "Jacquard collar and cuffs", "Side slits with bartack reinforcement"],
+    "highlights": [
+      {"title": "2X Bio Wash", "text": "Gold finish"}, {"title": "Jacquard", "text": "Collar & cuffs"},
+      {"title": "Slits + Bartack", "text": "Reinforced side vents"}, {"title": "Mayer & Cie", "text": "German tech knit"},
+      {"title": "HI Q+ Dyes", "text": "Long-lasting colours"}
+    ],
+    "specs": [
+      {"label": "Fabric", "value": "100% Pima cotton"}, {"label": "Weight", "value": "260 GSM"},
+      {"label": "Fit", "value": "Regular (modern)"}, {"label": "Sleeve", "value": "Half sleeve"},
+      {"label": "Finish", "value": "Double bio wash, gold"}, {"label": "Collar & cuffs", "value": "Jacquard"},
+      {"label": "Side vents", "value": "Slits with bartack"}, {"label": "Knitting", "value": "Mayer & Cie (Germany)"},
+      {"label": "Dyes", "value": "HI Q+ colour-fast"}, {"label": "Sizes", "value": "XS–5XL"}, {"label": "Origin", "value": "Made in India"}
+    ],
+    "useCases": [
+      {"title": "Corporate uniforms", "text": "A premium everyday polo for office, sales and client-facing teams that has to look sharp across hundreds of washes."},
+      {"title": "Hospitality & front-of-house", "text": "Soft Pima cotton and a structured jacquard collar keep reception, concierge and restaurant staff looking polished all shift."},
+      {"title": "Corporate gifting", "text": "A polo worth keeping: 12 colours, a premium hand-feel and a gold-finish wash make it a gift people actually wear."},
+      {"title": "Private-label retail", "text": "A ready, tested base garment for brands launching a premium polo line without developing fabric from scratch."}
+    ],
+    "sizes": ["XS", "S", "M", "L", "XL", "2XL", "3XL", "5XL"], "sizeChart": "mens-polo",
+    "colors": [
+      {"name": "White", "hex": "#F4F4F2", "images": []}, {"name": "Mint Blue", "hex": "#BFE9E6", "images": []},
+      {"name": "Imperial Blue", "hex": "#1F3DB8", "images": []}, {"name": "Teal Blue", "hex": "#164A5E", "images": []},
+      {"name": "Mauve", "hex": "#C27C82", "images": []}, {"name": "Umber", "hex": "#B85A1C", "images": []},
+      {"name": "Olive Green", "hex": "#4A5230", "images": []}, {"name": "Bottle Green", "hex": "#173F2E", "images": []},
+      {"name": "Red", "hex": "#D8301E", "images": []}, {"name": "French Wine", "hex": "#6A1428", "images": []},
+      {"name": "Midnight Navy", "hex": "#1A2140", "images": []}, {"name": "Classic Black", "hex": "#141414", "images": []}
+    ],
+    "heroColor": "Red",
+    "moq": 50, "price": 650, "tiers": [{"min": 100, "price": 620}, {"min": 250, "price": 590}],
+    "weightG": 260, "hsCode": "6105.10", "leadTime": "7–10 working days",
+    "careKey": "cotton",
+    "seo": {"title": "Aurum Pima Cotton Polo – 260 GSM, 12 Colours | Bulk from 50 pcs", "description": "Premium 100% Pima cotton polo, 260 GSM with gold-finish bio wash and jacquard collar. Sizes XS–5XL, 12 colours. Order from 50 pieces, mix sizes and colours. Ships worldwide."},
+    "faqs": [{"q": "Will the Pima cotton shrink?", "a": "The double bio wash pre-treats the fabric so it feels broken-in and stays stable. Follow the care guide (30°C, line dry) for the best results."}],
+    "i18n": {}
+  },
+  {
+    "id": "sc-02", "code": "SC-02", "slug": "terra-sustainable-polo-men", "status": "published", "sort": 2,
+    "name": "Terra Sustainable Polo", "line": "Terra", "type": "Polo", "category": "polos", "gender": "Men's", "sleeve": "Half sleeve",
+    "tagline": "100% recycled, 100% recyclable. About 5,000 L of water saved per polo.",
+    "short": "A 240 GSM polo made from recycled plastic and upcycled cotton using Optiknit technology. It's 100% recycled and 100% recyclable.",
+    "description": "Terra is made using Turkish Optiknit technology from only recycled plastic and leftover cotton. Each polo uses the cutting leftovers from three T-shirts and four non-biodegradable plastic bottles. Choosing one saves about 5,000 litres of water.\n\nThe 240 GSM fabric is 60% recycled cotton and 40% recycled polyester, and it's yarn-dyed with diamond-quality yarn for deep, even colour. It's 100% recycled, 100% recyclable and certified under the Global Recycled Standard.\n\nThe finish is polished: a jacquard collar and cuffs, wood-textured buttons and reinforced side slits.",
+    "fabric": "60% recycled cotton, 40% recycled polyester", "gsm": 240, "fit": "Regular fit",
+    "features": ["60% recycled cotton, 40% recycled polyester, 240 GSM", "Optiknit technology: recycled plastic plus upcycled cotton", "About 5,000 litres of water saved and 4 plastic bottles reused per garment", "100% recycled, 100% recyclable", "GRS (Global Recycled Standard) certified", "Yarn-dyed, diamond-quality yarn", "Jacquard collar and cuffs, wood-textured buttons", "Side slits with bartack reinforcement"],
+    "highlights": [
+      {"title": "Jacquard", "text": "Collar & cuffs"}, {"title": "Slits + Bartack", "text": "Reinforced side vents"},
+      {"title": "Wood Textured Button", "text": "Natural finish"}, {"title": "Yarn Dyed", "text": "Diamond quality yarn"}
+    ],
+    "impact": [{"value": "5,000 L", "label": "water saved per polo"}, {"value": "4", "label": "plastic bottles reused"}, {"value": "3", "label": "T-shirts' cutting waste upcycled"}],
+    "specs": [
+      {"label": "Fabric", "value": "60% recycled cotton, 40% recycled polyester"}, {"label": "Weight", "value": "240 GSM"},
+      {"label": "Technology", "value": "Optiknit (Turkey)"}, {"label": "Certification", "value": "GRS – Global Recycled Standard"},
+      {"label": "Fit", "value": "Regular"}, {"label": "Sleeve", "value": "Half sleeve"},
+      {"label": "Collar & cuffs", "value": "Jacquard"}, {"label": "Buttons", "value": "Wood-textured"},
+      {"label": "Yarn", "value": "Yarn-dyed, diamond quality"}, {"label": "Sizes", "value": "XS–5XL"}, {"label": "Origin", "value": "Made in India"}
+    ],
+    "useCases": [
+      {"title": "ESG & sustainability programmes", "text": "Put measurable impact on your team: every polo reuses 4 bottles and saves about 5,000 L of water — numbers you can report."},
+      {"title": "Corporate uniforms", "text": "A smart, yarn-dyed polo for everyday office and field wear, with the durability of reinforced vents and a jacquard collar."},
+      {"title": "Events & conferences", "text": "Staff and volunteer polos for summits where the sustainability story matters as much as the look."},
+      {"title": "Eco brand merchandise", "text": "A GRS-certified base for brands whose merch has to match their values."}
+    ],
+    "sizes": ["XS", "S", "M", "L", "XL", "2XL", "3XL", "5XL"], "sizeChart": "mens-polo",
+    "colors": [
+      {"name": "White", "hex": "#F4F4F2", "images": []}, {"name": "Sunrise Yellow", "hex": "#EFE68A", "images": []},
+      {"name": "Aqua Blue", "hex": "#2F9BD6", "images": []}, {"name": "Sand Beige", "hex": "#CDBBA0", "images": []},
+      {"name": "Heather Grey", "hex": "#B9BBBD", "images": []}, {"name": "Heather Red", "hex": "#D8343A", "images": []},
+      {"name": "Midnight Navy", "hex": "#1A2140", "images": []}, {"name": "Forest Green", "hex": "#1F3B2E", "images": []},
+      {"name": "Charcoal Melange", "hex": "#2E2F33", "images": []}, {"name": "Classic Black/Red", "hex": "#141414", "hex2": "#D8301E", "images": []},
+      {"name": "Classic Black", "hex": "#141414", "images": []}
+    ],
+    "heroColor": "Aqua Blue",
+    "moq": 50, "price": 540, "tiers": [{"min": 100, "price": 515}, {"min": 250, "price": 490}],
+    "weightG": 240, "hsCode": "6105.10", "leadTime": "7–10 working days",
+    "careKey": "cotton",
+    "seo": {"title": "Terra Recycled Polo – GRS Certified, 240 GSM | Bulk from 50 pcs", "description": "Sustainable men's polo, 100% recycled and recyclable (60% recycled cotton, 40% recycled polyester), Optiknit, GRS certified. 11 colours, XS–5XL. Order from 50 pieces."},
+    "faqs": [{"q": "Is Terra really 100% recycled?", "a": "Yes. The fabric is 60% recycled cotton and 40% recycled polyester made from plastic bottles, and the garment itself is 100% recyclable."}],
+    "i18n": {}
+  },
+  {
+    "id": "sc-03", "code": "SC-03", "slug": "gaia-sustainable-polo-women", "status": "published", "sort": 3,
+    "name": "Gaia Sustainable Polo", "line": "Gaia", "type": "Polo", "category": "polos", "gender": "Women's", "sleeve": "Half sleeve",
+    "tagline": "The women's recycled polo, with 5% Lycra stretch for a clean fitted shape.",
+    "short": "A women's 240 GSM recycled polo with 5% Lycra stretch, made with Optiknit technology.",
+    "description": "Gaia is our women's polo, made the same responsible way as Terra and cut for a clean, fitted shape. It's made with Turkish Optiknit technology from recycled plastic and leftover cotton. Each garment reuses at least four plastic bottles and saves about 5,000 litres of water.\n\nThe 240 GSM fabric blends 60% recycled cotton and 35% recycled polyester with 5% Lycra, so it moves with you and keeps its shape all day.\n\nIt's yarn-dyed with diamond-quality yarn and finished with a jacquard collar and cuffs, wood-textured buttons and reinforced side slits.",
+    "fabric": "60% recycled cotton, 35% recycled polyester, 5% Lycra", "gsm": 240, "fit": "Women's fitted",
+    "features": ["60% recycled cotton, 35% recycled polyester, 5% Lycra, 240 GSM", "Stretch for a comfortable fitted shape", "Optiknit technology: recycled plastic plus upcycled cotton", "About 5,000 litres of water saved and 4 plastic bottles reused per garment", "GRS (Global Recycled Standard) certified", "Yarn-dyed, diamond-quality yarn", "Jacquard collar and cuffs, wood-textured buttons", "Side slits with bartack reinforcement"],
+    "highlights": [
+      {"title": "5% Lycra", "text": "Stretch & recovery"}, {"title": "Jacquard", "text": "Collar & cuffs"},
+      {"title": "Wood Textured Button", "text": "Natural finish"}, {"title": "Yarn Dyed", "text": "Diamond quality yarn"}
+    ],
+    "impact": [{"value": "5,000 L", "label": "water saved per polo"}, {"value": "4", "label": "plastic bottles reused"}, {"value": "5%", "label": "Lycra for stretch"}],
+    "specs": [
+      {"label": "Fabric", "value": "60% recycled cotton, 35% recycled polyester, 5% Lycra"}, {"label": "Weight", "value": "240 GSM"},
+      {"label": "Technology", "value": "Optiknit (Turkey)"}, {"label": "Certification", "value": "GRS – Global Recycled Standard"},
+      {"label": "Fit", "value": "Women's fitted"}, {"label": "Sleeve", "value": "Half sleeve"},
+      {"label": "Collar & cuffs", "value": "Jacquard"}, {"label": "Buttons", "value": "Wood-textured"},
+      {"label": "Sizes", "value": "XS–5XL"}, {"label": "Origin", "value": "Made in India"}
+    ],
+    "useCases": [
+      {"title": "Women's team uniforms", "text": "A true women's cut — not a resized men's polo — for retail, hospitality and corporate teams."},
+      {"title": "Hospitality & retail staff", "text": "Stretch keeps it comfortable through long, active shifts while the collar stays crisp."},
+      {"title": "ESG programmes", "text": "Pair with Terra for a matched men's and women's sustainable uniform with the same colours."},
+      {"title": "Events & brand ambassadors", "text": "A fitted, photo-ready polo for promoters and event crews."}
+    ],
+    "sizes": ["XS", "S", "M", "L", "XL", "2XL", "3XL", "5XL"], "sizeChart": "womens-polo",
+    "colors": [
+      {"name": "White", "hex": "#F4F4F2", "images": []}, {"name": "Sunrise Yellow", "hex": "#EFE68A", "images": []},
+      {"name": "Aqua Blue", "hex": "#2F9BD6", "images": []}, {"name": "Sand Beige", "hex": "#CDBBA0", "images": []},
+      {"name": "Heather Grey", "hex": "#B9BBBD", "images": []}, {"name": "Heather Red", "hex": "#D8343A", "images": []},
+      {"name": "Midnight Navy", "hex": "#1A2140", "images": []}, {"name": "Forest Green", "hex": "#1F3B2E", "images": []},
+      {"name": "Charcoal Melange", "hex": "#2E2F33", "images": []}, {"name": "Classic Black/Red", "hex": "#141414", "hex2": "#D8301E", "images": []},
+      {"name": "Classic Black", "hex": "#141414", "images": []}
+    ],
+    "heroColor": "Heather Red",
+    "moq": 50, "price": 560, "tiers": [{"min": 100, "price": 535}, {"min": 250, "price": 510}],
+    "weightG": 230, "hsCode": "6106.10", "leadTime": "7–10 working days",
+    "careKey": "cotton",
+    "seo": {"title": "Gaia Women's Recycled Polo – Stretch, GRS Certified | Bulk from 50 pcs", "description": "Women's sustainable polo with 5% Lycra stretch, 240 GSM, 60% recycled cotton and 35% recycled polyester. GRS certified, 11 colours, XS–5XL. Order from 50 pieces."},
+    "faqs": [{"q": "Can I order Gaia and Terra together in matching colours?", "a": "Yes. Both come in the same 11 colours. Each product has its own MOQ, and you can mix sizes and colours within each."}],
+    "i18n": {}
+  },
+  {
+    "id": "sc-04", "code": "SC-04", "slug": "astra-performance-polo", "status": "published", "sort": 4,
+    "name": "Astra Performance Polo", "line": "Astra", "type": "Polo", "category": "performance", "gender": "Men's", "sleeve": "Half sleeve",
+    "tagline": "Moisture-wicking, UV-protected and wrinkle-free. 16 colours.",
+    "short": "A 200 GSM polyester performance polo that manages moisture, resists wrinkles and blocks UV.",
+    "description": "Astra is built for long days and warm weather. The 200 GSM polyester fabric draws sweat away from the skin, so you stay dry and comfortable.\n\nIt has UV protection built into the fabric, and the wrinkle-free effect keeps it looking sharp from morning to evening. An anti-static finish means less cling.\n\nIt comes in 16 colours, from quiet neutrals to bold brights, so it works for teams, uniforms and everyday wear.",
+    "fabric": "100% polyester", "gsm": 200, "fit": "Regular fit",
+    "features": ["100% polyester, 200 GSM", "Moisture management", "UV-protected fabric", "Wrinkle-free effect", "Anti-static", "OBT Ready, 200-day warranty"],
+    "highlights": [
+      {"title": "Moisture Management", "text": "Draws sweat away from skin"}, {"title": "UV Protected Fabric", "text": "Sun protection built in"},
+      {"title": "Wrinkle-Free Effect", "text": "Looks sharp all day"}, {"title": "Anti-Static", "text": "Less cling"},
+      {"title": "OBT Ready", "text": "200-day warranty"}
+    ],
+    "specs": [
+      {"label": "Fabric", "value": "100% polyester"}, {"label": "Weight", "value": "200 GSM"},
+      {"label": "Moisture", "value": "Wicking / moisture management"}, {"label": "UV", "value": "UV-protected fabric"},
+      {"label": "Finish", "value": "Wrinkle-free, anti-static"}, {"label": "Warranty", "value": "OBT Ready, 200 days"},
+      {"label": "Fit", "value": "Regular"}, {"label": "Sleeve", "value": "Half sleeve"},
+      {"label": "Sizes", "value": "XS–5XL"}, {"label": "Origin", "value": "Made in India"}
+    ],
+    "useCases": [
+      {"title": "Sports teams & tournaments", "text": "Quick-drying fabric for cricket, golf, padel and corporate leagues, in 16 colours to match any team kit."},
+      {"title": "Outdoor & field staff", "text": "UV protection and moisture control for delivery, construction-site supervisors, ground staff and promoters in hot climates."},
+      {"title": "Schools & colleges", "text": "A durable, easy-care sports-day and house polo that comes out of the wash looking ironed."},
+      {"title": "Promotional campaigns", "text": "Bright, colour-fast shades and a wrinkle-free finish that look good in photos and on stage."}
+    ],
+    "sizes": ["XS", "S", "M", "L", "XL", "2XL", "3XL", "5XL"], "sizeChart": "mens-polo",
+    "colors": [
+      {"name": "Ivory White", "hex": "#F3F0E6", "images": []}, {"name": "Slate Grey", "hex": "#8A8C92", "images": []},
+      {"name": "Sky Mint", "hex": "#9EE3E6", "images": []}, {"name": "Soft Pink", "hex": "#F0CFE0", "images": []},
+      {"name": "Lilac", "hex": "#CDB4F0", "images": []}, {"name": "Purple", "hex": "#7A28C8", "images": []},
+      {"name": "Mustard", "hex": "#F0B419", "images": []}, {"name": "Orange", "hex": "#FF6A10", "images": []},
+      {"name": "Olive Green", "hex": "#4F5B3A", "images": []}, {"name": "Bottle Green", "hex": "#123F2E", "images": []},
+      {"name": "Imperial Blue", "hex": "#1F3DB8", "images": []}, {"name": "Teal Blue", "hex": "#1E4E6A", "images": []},
+      {"name": "Midnight Navy", "hex": "#1A2140", "images": []}, {"name": "Spark Red", "hex": "#E2182B", "images": []},
+      {"name": "French Wine", "hex": "#6A1428", "images": []}, {"name": "Classic Black", "hex": "#141414", "images": []}
+    ],
+    "heroColor": "Orange",
+    "moq": 50, "price": 420, "tiers": [{"min": 100, "price": 400}, {"min": 250, "price": 380}],
+    "weightG": 190, "hsCode": "6105.20", "leadTime": "7–10 working days",
+    "careKey": "polyester",
+    "seo": {"title": "Astra Performance Polo – Dri-fit, UV Protected, 16 Colours | Bulk from 50 pcs", "description": "200 GSM polyester performance polo: moisture management, UV protection, wrinkle-free and anti-static. 16 colours, XS–5XL. Order from 50 pieces, mix sizes and colours."},
+    "faqs": [],
+    "i18n": {}
+  },
+  {
+    "id": "sc-05", "code": "SC-05", "slug": "luna-melange-polo", "status": "published", "sort": 5,
+    "name": "Luna Melange Polo", "line": "Luna", "type": "Polo", "category": "performance", "gender": "Men's", "sleeve": "Half sleeve",
+    "tagline": "Performance fabric with a soft, textured melange look.",
+    "short": "A 200 GSM polyester melange polo with a soft, textured look and full performance features.",
+    "description": "Luna pairs the polish of a melange fabric with everyday performance. The 200 GSM polyester melange has a subtle textured tone that looks refined up close.\n\nIt manages moisture, offers UV protection, resists wrinkles and has an anti-static finish, so it stays comfortable and sharp all day.\n\nIt comes in two soft tones, Onion and Pistachio, which are easy to style for work or the weekend.",
+    "fabric": "Polyester melange", "gsm": 200, "fit": "Regular fit",
+    "features": ["Polyester melange, 200 GSM", "Moisture management", "UV-protected fabric", "Wrinkle-free effect", "Anti-static", "OBT Ready, 200-day warranty"],
+    "highlights": [
+      {"title": "Moisture Management", "text": "Draws sweat away from skin"}, {"title": "UV Protected Fabric", "text": "Sun protection built in"},
+      {"title": "Wrinkle-Free Effect", "text": "Looks sharp all day"}, {"title": "Anti-Static", "text": "Less cling"},
+      {"title": "OBT Ready", "text": "200-day warranty"}
+    ],
+    "specs": [
+      {"label": "Fabric", "value": "Polyester melange"}, {"label": "Weight", "value": "200 GSM"},
+      {"label": "Moisture", "value": "Wicking / moisture management"}, {"label": "UV", "value": "UV-protected fabric"},
+      {"label": "Finish", "value": "Wrinkle-free, anti-static"}, {"label": "Warranty", "value": "OBT Ready, 200 days"},
+      {"label": "Fit", "value": "Regular"}, {"label": "Sizes", "value": "XS–5XL"}, {"label": "Origin", "value": "Made in India"}
+    ],
+    "useCases": [
+      {"title": "Smart-casual team wear", "text": "A textured, softer-looking alternative to solid performance polos for creative and client-facing teams."},
+      {"title": "Golf days & clubs", "text": "Performance where it counts, in two understated tones that suit club dress codes."},
+      {"title": "Corporate offsites", "text": "Comfortable for travel and outdoor sessions, sharp enough for the evening dinner."}
+    ],
+    "sizes": ["XS", "S", "M", "L", "XL", "2XL", "3XL", "5XL"], "sizeChart": "mens-polo",
+    "colors": [{"name": "Onion", "hex": "#C9A0BE", "images": []}, {"name": "Pistachio", "hex": "#BFD3B4", "images": []}],
+    "heroColor": "Onion",
+    "moq": 50, "price": 450, "tiers": [{"min": 100, "price": 430}, {"min": 250, "price": 410}],
+    "weightG": 190, "hsCode": "6105.20", "leadTime": "7–10 working days",
+    "careKey": "polyester",
+    "seo": {"title": "Luna Melange Performance Polo – 200 GSM | Bulk from 50 pcs", "description": "Polyester melange performance polo with moisture management, UV protection and wrinkle-free finish. Onion and Pistachio, XS–5XL. Order from 50 pieces."},
+    "faqs": [],
+    "i18n": {}
+  },
+  {
+    "id": "sc-06", "code": "SC-06", "slug": "atlas-oversized-tee", "status": "published", "sort": 6,
+    "name": "Atlas Oversized Tee", "line": "Atlas", "type": "T-shirt", "category": "tees", "gender": "", "sleeve": "Half sleeve",
+    "tagline": "Pima cotton French terry with a relaxed, structured drape.",
+    "short": "A 240 GSM oversized tee in 100% Pima cotton French terry with a gold-finish double bio wash.",
+    "description": "Atlas is our relaxed, oversized tee with a premium feel. It's made from 100% Pima cotton French terry at 240 GSM, knitted on Mayer & Cie German machines for a soft, structured drape.\n\nA double bio wash with gold finish makes it feel broken-in from the first wear, and High Q+ dyes keep the colour rich wash after wash.\n\nThe detailed hemline gives it a clean finish that works on its own or layered.",
+    "fabric": "100% Pima cotton French terry", "gsm": 240, "fit": "Oversized",
+    "features": ["100% Pima cotton, 240 GSM", "Oversized fit", "French terry fabric", "Double bio wash (gold finish)", "Detailed hemline", "Knitted on Mayer & Cie German machines", "High Q+ dyes for colour fastness"],
+    "highlights": [
+      {"title": "2X Bio Wash", "text": "Gold finish"}, {"title": "French Terry", "text": "Soft, structured fabric"},
+      {"title": "Detailed Hemline", "text": "Clean finish"}, {"title": "Mayer & Cie", "text": "German tech knit"},
+      {"title": "HI Q+ Dyes", "text": "Long-lasting colours"}
+    ],
+    "specs": [
+      {"label": "Fabric", "value": "100% Pima cotton French terry"}, {"label": "Weight", "value": "240 GSM"},
+      {"label": "Fit", "value": "Oversized"}, {"label": "Finish", "value": "Double bio wash, gold"},
+      {"label": "Hem", "value": "Detailed hemline"}, {"label": "Knitting", "value": "Mayer & Cie (Germany)"},
+      {"label": "Dyes", "value": "HI Q+ colour-fast"}, {"label": "Sizes", "value": "2XS–2XL"}, {"label": "Origin", "value": "Made in India"}
+    ],
+    "useCases": [
+      {"title": "Brand merch drops", "text": "A heavyweight-feel, oversized silhouette that sells as streetwear, not as a giveaway tee."},
+      {"title": "Creator & band merch", "text": "Five on-trend colours that print and photograph well."},
+      {"title": "Startup & studio team tees", "text": "The tee your team chooses to wear on weekends too."},
+      {"title": "Private-label streetwear", "text": "A premium Pima base for labels launching an oversized line."}
+    ],
+    "sizes": ["2XS", "XS", "S", "M", "L", "XL", "2XL"], "sizeChart": "",
+    "colors": [
+      {"name": "Lilac Grey", "hex": "#C3B6DD", "images": []}, {"name": "Rust", "hex": "#8E2E22", "images": []},
+      {"name": "Petrol", "hex": "#15404A", "images": []}, {"name": "Off-White", "hex": "#ECEBE4", "images": []},
+      {"name": "Black", "hex": "#141414", "images": []}
+    ],
+    "heroColor": "Black",
+    "moq": 50, "price": 690, "tiers": [{"min": 100, "price": 655}, {"min": 250, "price": 625}],
+    "weightG": 270, "hsCode": "6109.10", "leadTime": "7–10 working days",
+    "careKey": "cotton",
+    "seo": {"title": "Atlas Oversized Tee – Pima Cotton French Terry, 240 GSM | Bulk from 50 pcs", "description": "Oversized tee in 100% Pima cotton French terry, 240 GSM, gold-finish bio wash. 5 colours, 2XS–2XL. Order from 50 pieces for merch and private label."},
+    "faqs": [],
+    "i18n": {}
+  }
+]

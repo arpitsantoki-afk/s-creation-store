@@ -1,0 +1,580 @@
+{
+  "store": {
+    "name": "S Creation",
+    "legalName": "S Creation",
+    "tagline": "Premium polos and tees, made in India, shipped worldwide.",
+    "email": "screationindia@gmail.com",
+    "phone": "+91 9033021196",
+    "whatsapp": "+919033021196",
+    "address": {
+      "line1": "",
+      "line2": "",
+      "city": "",
+      "state": "Gujarat",
+      "postcode": "",
+      "country": "IN"
+    },
+    "domain": "screationindia.in",
+    "siteUrl": "https://screationindia.in",
+    "apiUrl": "https://api.screationindia.in",
+    "social": {
+      "instagram": "",
+      "linkedin": "",
+      "facebook": ""
+    },
+    "announcement": "Minimum order 50 pcs per style — mix any sizes and colours. Worldwide shipping by DHL Express."
+  },
+  "baseCurrency": "INR",
+  "fxMarkup": 2,
+  "currencies": [
+    {
+      "code": "INR",
+      "enabled": true,
+      "round": 1
+    },
+    {
+      "code": "USD",
+      "enabled": true,
+      "round": 0.05
+    },
+    {
+      "code": "EUR",
+      "enabled": true,
+      "round": 0.05
+    },
+    {
+      "code": "GBP",
+      "enabled": true,
+      "round": 0.05
+    },
+    {
+      "code": "AED",
+      "enabled": true,
+      "round": 0.25
+    },
+    {
+      "code": "AUD",
+      "enabled": true,
+      "round": 0.05
+    },
+    {
+      "code": "CAD",
+      "enabled": true,
+      "round": 0.05
+    },
+    {
+      "code": "SGD",
+      "enabled": true,
+      "round": 0.05
+    }
+  ],
+  "languages": {
+    "default": "en",
+    "enabled": [
+      "en"
+    ],
+    "available": [
+      "en",
+      "de",
+      "fr",
+      "es"
+    ]
+  },
+  "payments": {
+    "stripe": {
+      "enabled": true,
+      "label": "Card / Apple Pay / Google Pay",
+      "currencies": []
+    },
+    "paypal": {
+      "enabled": true,
+      "mode": "sandbox",
+      "label": "PayPal",
+      "currencies": [
+        "USD",
+        "EUR",
+        "GBP",
+        "AUD",
+        "CAD",
+        "SGD"
+      ]
+    }
+  },
+  "shipping": {
+    "origin": {
+      "company": "S Creation",
+      "line1": "",
+      "city": "Surat",
+      "postcode": "395003",
+      "country": "IN",
+      "phone": "+919033021196",
+      "email": "screationindia@gmail.com"
+    },
+    "dhl": {
+      "enabled": true,
+      "test": true,
+      "productCodes": [],
+      "incoterm": "DAP"
+    },
+    "packaging": {
+      "maxBoxKg": 20,
+      "box": {
+        "l": 60,
+        "w": 40,
+        "h": 40
+      },
+      "packagingPct": 6
+    },
+    "handlingPct": 0,
+    "manual": {
+      "enabled": true,
+      "zones": [
+        {
+          "name": "India",
+          "countries": [
+            "IN"
+          ],
+          "base": 250,
+          "perKg": 40,
+          "days": "3–6 working days"
+        },
+        {
+          "name": "Rest of world",
+          "countries": [
+            "*"
+          ],
+          "base": 2500,
+          "perKg": 900,
+          "days": "4–8 working days"
+        }
+      ]
+    }
+  },
+  "tax": {
+    "rules": [
+      {
+        "country": "IN",
+        "rate": 5,
+        "label": "GST"
+      }
+    ]
+  },
+  "orders": {
+    "notifyEmail": "screationindia@gmail.com",
+    "numberPrefix": "SC"
+  },
+  "seo": {
+    "titleSuffix": " | S Creation",
+    "homeTitle": "S Creation — Premium Polos & Tees in Bulk, Made in India",
+    "homeDescription": "Buy premium Pima cotton, recycled and performance polos and oversized tees in bulk. Order from 50 pieces per style, mix sizes and colours, pay in your currency and ship worldwide by DHL Express.",
+    "ogImage": "/assets/img/og.png",
+    "keywords": [
+      "bulk polo shirts",
+      "corporate polo",
+      "Pima cotton polo",
+      "recycled polo",
+      "performance polo",
+      "oversized tee",
+      "custom uniforms India",
+      "wholesale polos"
+    ]
+  },
+  "analytics": {
+    "ga4": "",
+    "cloudflareToken": ""
+  },
+  "sizeCharts": {
+    "mens-polo": {
+      "title": "Men's Polo & Round Neck",
+      "unit": "in",
+      "columns": [
+        "Size",
+        "Chest",
+        "Body length",
+        "Sleeve length"
+      ],
+      "rows": [
+        [
+          "XS",
+          "36",
+          "25",
+          "6½"
+        ],
+        [
+          "S",
+          "38",
+          "26",
+          "7"
+        ],
+        [
+          "M",
+          "40",
+          "27",
+          "7½"
+        ],
+        [
+          "L",
+          "42",
+          "28",
+          "8"
+        ],
+        [
+          "XL",
+          "44",
+          "29",
+          "8½"
+        ],
+        [
+          "2XL",
+          "46",
+          "29½",
+          "9"
+        ],
+        [
+          "3XL",
+          "48",
+          "30",
+          "9½"
+        ],
+        [
+          "5XL",
+          "52",
+          "31",
+          "10"
+        ]
+      ]
+    },
+    "womens-polo": {
+      "title": "Women's Polo & Round Neck",
+      "unit": "in",
+      "columns": [
+        "Size",
+        "Chest",
+        "Waist",
+        "Body length",
+        "Sleeve length"
+      ],
+      "rows": [
+        [
+          "XS",
+          "32",
+          "30",
+          "24¾",
+          "6"
+        ],
+        [
+          "S",
+          "34",
+          "32",
+          "25¼",
+          "6¼"
+        ],
+        [
+          "M",
+          "36",
+          "34",
+          "25¾",
+          "6½"
+        ],
+        [
+          "L",
+          "38",
+          "36",
+          "26¼",
+          "6¾"
+        ],
+        [
+          "XL",
+          "40",
+          "38",
+          "26¾",
+          "7"
+        ],
+        [
+          "2XL",
+          "42",
+          "40",
+          "27",
+          "7¼"
+        ],
+        [
+          "3XL",
+          "44",
+          "42",
+          "27½",
+          "7½"
+        ],
+        [
+          "5XL",
+          "48",
+          "46",
+          "28½",
+          "8"
+        ]
+      ]
+    },
+    "kids-round-neck": {
+      "title": "Kids' Round Neck",
+      "unit": "in",
+      "columns": [
+        "Age",
+        "Chest",
+        "Body length",
+        "Sleeve length"
+      ],
+      "rows": [
+        [
+          "2–3",
+          "24",
+          "17",
+          "4⅞"
+        ],
+        [
+          "3–4",
+          "25",
+          "18",
+          "5¼"
+        ],
+        [
+          "5–6",
+          "27",
+          "19",
+          "5⅝"
+        ],
+        [
+          "7–8",
+          "28",
+          "20",
+          "6"
+        ],
+        [
+          "9–10",
+          "30",
+          "22½",
+          "6⅜"
+        ],
+        [
+          "11–12",
+          "32",
+          "23½",
+          "6¾"
+        ],
+        [
+          "13–14",
+          "34",
+          "24½",
+          "7⅛"
+        ],
+        [
+          "15–16",
+          "36",
+          "25",
+          "7½"
+        ]
+      ]
+    },
+    "hoodies-jackets": {
+      "title": "Hoodies & Jackets",
+      "unit": "in",
+      "columns": [
+        "Size",
+        "Chest",
+        "Body length",
+        "Sleeve length"
+      ],
+      "rows": [
+        [
+          "XS",
+          "38",
+          "25",
+          "23"
+        ],
+        [
+          "S",
+          "40½",
+          "25½",
+          "24"
+        ],
+        [
+          "M",
+          "43",
+          "26",
+          "25"
+        ],
+        [
+          "L",
+          "45",
+          "27½",
+          "26"
+        ],
+        [
+          "XL",
+          "46½",
+          "28½",
+          "27"
+        ],
+        [
+          "2XL",
+          "49",
+          "29½",
+          "28"
+        ],
+        [
+          "3XL",
+          "51",
+          "30",
+          "29"
+        ],
+        [
+          "5XL",
+          "54½",
+          "31",
+          "29"
+        ]
+      ]
+    },
+    "trousers": {
+      "title": "Trousers",
+      "unit": "in",
+      "columns": [
+        "Waist",
+        "Length",
+        "Thigh"
+      ],
+      "rows": [
+        [
+          "30",
+          "41",
+          "22"
+        ],
+        [
+          "32",
+          "41",
+          "23"
+        ],
+        [
+          "34",
+          "41",
+          "24"
+        ],
+        [
+          "36",
+          "41",
+          "25"
+        ],
+        [
+          "38",
+          "41",
+          "26"
+        ],
+        [
+          "40",
+          "41",
+          "27"
+        ]
+      ]
+    }
+  },
+  "sizeNote": "Garment measurements in inches. A tolerance of ±1 inch is acceptable.",
+  "care": {
+    "cotton": [
+      "Machine wash mild or hand wash at 30°C",
+      "Wash with similar colours",
+      "Do not bleach",
+      "Line dry only",
+      "Iron on a low setting",
+      "Do not dry clean"
+    ],
+    "polyester": [
+      "Machine wash mild or hand wash at 30°C",
+      "Wash with similar colours",
+      "Do not bleach",
+      "Line dry only",
+      "Iron on a low setting",
+      "Do not dry clean"
+    ]
+  },
+  "faqs": [
+    {
+      "q": "What is the minimum order quantity (MOQ)?",
+      "a": "Each style has its own minimum, shown on the product page — 50 pieces for most styles. The minimum applies per product, and you can mix any sizes and colours to reach it."
+    },
+    {
+      "q": "Can I mix sizes and colours?",
+      "a": "Yes. Use the order grid on each product page to pick quantities for any combination of colours and sizes. Only the total per product needs to meet its minimum."
+    },
+    {
+      "q": "Do prices drop for larger orders?",
+      "a": "Yes. Products with volume pricing show the price breaks on the product page, and the lower unit price applies automatically in your cart."
+    },
+    {
+      "q": "Which currencies can I pay in?",
+      "a": "Prices are shown in your local currency where supported, and you pay in that currency by card (Stripe) or PayPal. Exchange rates are refreshed daily."
+    },
+    {
+      "q": "Do you ship internationally?",
+      "a": "Yes. We ship worldwide with DHL Express. Live shipping rates are calculated at checkout from your address and the weight of your order."
+    },
+    {
+      "q": "How long does production and delivery take?",
+      "a": "Orders are dispatched within the lead time shown on each product page. DHL Express delivery usually takes a few working days after dispatch, depending on the destination."
+    },
+    {
+      "q": "Who pays import duties and taxes?",
+      "a": "International orders ship DAP (Delivered at Place): import duties and local taxes, if any, are charged to the receiver by the carrier on delivery."
+    },
+    {
+      "q": "Can you add our logo?",
+      "a": "Write to us with your artwork, quantities and placement, and we'll confirm what's possible and the cost before you order."
+    }
+  ],
+  "pages": [
+    {
+      "slug": "about",
+      "title": "About S Creation",
+      "nav": true,
+      "body": "S Creation makes premium polos and T-shirts in India for teams, brands and businesses around the world.\n\nWe focus on a small range done properly: Pima cotton knitted on Mayer & Cie German machines, recycled fabrics made with Optiknit technology, and performance polyester that stays sharp all day.\n\nEvery style can be ordered from its minimum quantity, with any mix of sizes and colours, paid for in your currency and shipped by DHL Express."
+    },
+    {
+      "slug": "shipping-returns",
+      "title": "Shipping & Returns",
+      "nav": false,
+      "body": "## Shipping\n\nWe ship worldwide with DHL Express. Shipping is calculated at checkout from your delivery address and the total weight of your order.\n\nInternational orders are shipped DAP (Delivered at Place). Import duties and local taxes, if any, are collected by the carrier from the receiver.\n\n## Returns\n\n[Add your returns and exchange policy here before going live.]"
+    },
+    {
+      "slug": "terms",
+      "title": "Terms & Conditions",
+      "nav": false,
+      "body": "[Add your terms and conditions here before going live.]"
+    },
+    {
+      "slug": "privacy",
+      "title": "Privacy Policy",
+      "nav": false,
+      "body": "[Add your privacy policy here before going live.]"
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "body": "Email us at screationindia@gmail.com or call +91 9033021196. For bulk quotes, custom branding or samples, use the form below."
+    }
+  ],
+  "categories": [
+    {
+      "slug": "polos",
+      "name": "Polos"
+    },
+    {
+      "slug": "performance",
+      "name": "Performance"
+    },
+    {
+      "slug": "tees",
+      "name": "T-shirts"
+    }
+  ],
+  "publish": {
+    "nightly": false
+  }
+}

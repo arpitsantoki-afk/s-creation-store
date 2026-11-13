@@ -1,0 +1,40 @@
+name: Build & deploy storefront
+
+on:
+  push:
+    branches: [main]
+    paths: ['site/**', 'content/**', 'shared/**', 'admin/**', '.github/workflows/site.yml']
+  repository_dispatch:
+    types: [publish]          # sent by the dashboard "Publish site" button
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Build static site from the live API
+        run: node site/build.mjs
+        env:
+          API_URL: ${{ vars.API_URL }}            # e.g. https://api.screationindia.in
+          REQUIRE_API: ${{ vars.API_URL != '' && '1' || '0' }}
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: dist }
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: { name: github-pages, url: '${{ steps.deployment.outputs.page_url }}' }
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

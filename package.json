@@ -1,0 +1,14 @@
+{
+  "name": "s-creation-store",
+  "private": true,
+  "type": "module",
+  "description": "S Creation storefront (static, GitHub Pages) + API (Cloudflare Worker, D1, R2)",
+  "scripts": {
+    "build": "node site/build.mjs",
+    "build:local": "API_URL=http://localhost:8787 PUBLIC_API_URL=http://localhost:8787 SITE_URL=http://localhost:8080 node site/build.mjs",
+    "serve": "npx --yes serve dist -l 8080",
+    "worker:dev": "cd worker && npm run dev",
+    "worker:deploy": "cd worker && npm run deploy"
+  },
+  "engines": { "node": ">=20" }
+}

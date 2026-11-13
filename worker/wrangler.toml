@@ -1,0 +1,44 @@
+name = "screation-api"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Custom domain for the API (DNS for screationindia.in must be on Cloudflare)
+routes = [{ pattern = "api.screationindia.in", custom_domain = true }]
+
+[vars]
+SITE_URL = "https://screationindia.in"
+API_URL = "https://api.screationindia.in"
+# Comma-separated extra origins allowed to call the API (local dev etc.)
+ALLOWED_ORIGINS = "http://localhost:8080,http://127.0.0.1:8080"
+# GitHub repo that builds the storefront ("owner/repo"); used by the dashboard Publish button
+GITHUB_REPO = "your-github-user/s-creation-store"
+STRIPE_MODE = "test"          # test | live (informational; the key decides)
+DHL_ENV = "test"              # test | live
+
+[[d1_databases]]
+binding = "DB"
+database_name = "screation"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+[[r2_buckets]]
+binding = "MEDIA"
+bucket_name = "screation-media"
+
+# Workers AI — used only by the dashboard's "Auto-translate" button (optional)
+[ai]
+binding = "AI"
+
+# Daily FX refresh (05:30 IST) — also triggers a site rebuild if enabled in settings
+[triggers]
+crons = ["0 0 * * *"]
+
+# Secrets (set with `npx wrangler secret put NAME`):
+#   SESSION_SECRET          long random string for signing admin sessions and shipping quotes
+#   SETUP_TOKEN             one-time token to create the first admin account
+#   STRIPE_SECRET_KEY       sk_test_… / sk_live_…
+#   STRIPE_WEBHOOK_SECRET   whsec_…
+#   PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PAYPAL_WEBHOOK_ID (optional)
+#   DHL_API_KEY, DHL_API_SECRET, DHL_ACCOUNT_NUMBER
+#   GITHUB_TOKEN            fine-grained token: Actions read + Contents read/write on the site repo
+#   RESEND_API_KEY          (optional) order emails via resend.com; set EMAIL_FROM var too
