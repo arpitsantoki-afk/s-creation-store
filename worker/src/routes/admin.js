@@ -262,6 +262,9 @@ export function adminRoutes(r) {
   A('POST', '/api/admin/shipping/test', 'settings', async (req, env) => {
     const b = await body(req);
     const settings = await getSettings(env);
+    // Use the environment ticked on screen (even if not saved yet) and ignore the service filter for the test.
+    if (typeof b.test === 'boolean') settings.shipping.dhl = { ...settings.shipping.dhl, test: b.test };
+    settings.shipping.dhl = { ...settings.shipping.dhl, productCodes: [] };
     const missing = ['DHL_API_KEY'].filter((k) => !env[k]);
     const { dhlHost } = await import('../shipping/dhl.js');
     const out = { endpoint: dhlHost(env, settings), environment: settings.shipping?.dhl?.test === false ? 'live' : 'test', enabledInSettings: !!settings.shipping?.dhl?.enabled, missingSecrets: missing,

@@ -626,7 +626,7 @@ async function viewSettings() {
     }
     const dt = $('[data-dhltest]'); if (dt) dt.onclick = async () => {
       const o = $('#dhlout'); o.hidden = false; o.textContent = 'Asking DHL…';
-      try { const d = await api('/api/admin/shipping/test', { method: 'POST', body: { country: $('#dhlc').value, postcode: $('#dhlp').value, city: $('#dhlcity').value } });
+      try { const d = await api('/api/admin/shipping/test', { method: 'POST', body: { test: S.shipping?.dhl?.test !== false, country: $('#dhlc').value, postcode: $('#dhlp').value, city: $('#dhlcity').value } });
         o.textContent = (d.ok ? '✓ DHL is working — ' + d.rates.map((r) => `${r.service}: ${r.amountCurrency} ${r.amount}`).join(' · ') : '✗ ' + d.error) + '\n\n' + JSON.stringify(d, null, 2); }
       catch (e) { o.textContent = '✗ ' + e.message; }
     };
