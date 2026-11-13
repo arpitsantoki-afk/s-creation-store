@@ -1,6 +1,8 @@
 // DHL Express XML Services (XML-PI) — the older DHL Express integration that uses a "Site ID" (e.g. v62_…)
 // and password. Used automatically when the saved DHL key looks like a Site ID. Supports rate quotes (GetQuote).
 const ENDPOINTS = { live: 'https://xmlpi-ea.dhl.com/XMLShippingServlet', test: 'https://xmlpitest-ea.dhl.com/XMLShippingServlet' };
+// Products not relevant for apparel; shown only if listed under “Limit DHL services”.
+const HIDDEN = new Set(['Q', 'D', 'X', 'C', 'K', 'L', 'T']); // medical express + document-only products
 export const isXmlpi = (env) => /^v\d+_/i.test(String(env.DHL_API_KEY || ''));
 export const xmlpiHost = (settings) => (settings.shipping?.dhl?.test === false ? ENDPOINTS.live : ENDPOINTS.test);
 
@@ -48,8 +50,9 @@ ${intl ? `<Dutiable><DeclaredCurrency>${x(settings.baseCurrency)}</DeclaredCurre
     const code = tag(q, 'GlobalProductCode');
     const amount = parseFloat(tag(q, 'ShippingCharge'));
     const days = tag(q, 'TotalTransitDays');
-    const date = tag(q, 'DeliveryDate').slice(0, 10);
+    const dd = tag(q, 'DeliveryDate');
+    const date = (tag(dd, 'DlvyDateTime') || dd).replace(/<[^>]*>/g, '').trim().slice(0, 10);
     return { carrier: 'dhl', code, service: `DHL ${tag(q, 'ProductShortName') || 'Express'}`, amount, amountCurrency: tag(q, 'CurrencyCode') || settings.baseCurrency,
       eta: date ? `Est. delivery ${date}` : days ? `${days} transit days` : '' };
-  }).filter((q) => q.amount > 0 && (!allow.length || allow.includes(q.code)));
+  }).filter((q) => q.amount > 0 && (allow.length ? allow.includes(q.code) : !HIDDEN.has(q.code)));
 }
