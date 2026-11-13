@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # One-click backend deploy: creates the D1 database and R2 bucket if missing, applies migrations,
 # deploys the Worker and syncs secrets from GitHub → Cloudflare. Safe to run repeatedly.
-set -euo pipefail
+set -eo pipefail
 cd worker
 npm ci --no-audit --no-fund || npm install --no-audit --no-fund
 W="npx wrangler"
@@ -28,7 +28,12 @@ sed -i "s#^GITHUB_REPO = .*#GITHUB_REPO = \"${GITHUB_REPOSITORY}\"#" "$CFG"
 [ -n "${SITE_URL:-}" ] && sed -i "s#^SITE_URL = .*#SITE_URL = \"${SITE_URL}\"#" "$CFG"
 
 $W d1 migrations apply screation --remote -c "$CFG"
-$W deploy -c "$CFG" | tee /tmp/deploy.log
+# Cloudflare occasionally returns transient API errors (e.g. code 10013): retry up to 3 times.
+for i in 1 2 3; do
+  if $W deploy -c "$CFG" | tee /tmp/deploy.log; then break; fi
+  [ "$i" = 3 ] && exit 1
+  echo "Deploy attempt $i failed; retrying in 20s…"; sleep 20
+done
 URL=$(grep -oE 'https://[a-z0-9.-]+\.workers\.dev' /tmp/deploy.log | head -1 || true)
 
 EXISTING=$($W secret list -c "$CFG" --format json 2>/dev/null || echo '[]')
