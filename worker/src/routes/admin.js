@@ -240,6 +240,8 @@ export function adminRoutes(r) {
     if (!b || typeof b !== 'object' || !b.store || !b.baseCurrency) throw bad('Invalid settings');
     if (!(b.currencies || []).some((c) => c.code === b.baseCurrency)) throw bad('Base currency must be in the currency list');
     if (!b.languages?.enabled?.includes(b.languages.default)) throw bad('Default language must be enabled');
+    const codes = b.shipping?.dhl?.productCodes || [];
+    if (codes.some((c) => !/^[A-Z0-9]{1,3}$/.test(c))) throw bad('“Limit DHL services” only takes 1–3 character DHL service codes such as P or N. Leave it empty to show all services. DHL credentials go in GitHub secrets.');
     await saveSettings(env, b);
     return json({ settings: await getSettings(env) });
   });
