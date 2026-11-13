@@ -1,6 +1,8 @@
 // DHL Express — MyDHL API (https://developer.dhl.com/api-reference/dhl-express-mydhl-api)
 // Rates: POST /rates · Shipments (label + AWB): POST /shipments · Tracking: GET /shipments/{awb}/tracking
 import { totalKg } from './packing.js';
+import { isXmlpi, xmlpiRates, xmlpiHost } from './dhl-xmlpi.js';
+export { isXmlpi, xmlpiHost };
 
 // Test vs live is chosen in Dashboard → Settings → Shipping (“Use DHL test environment”).
 const host = (env, settings) => (settings.shipping?.dhl?.test === false ? 'https://express.api.dhl.com/mydhlapi' : 'https://express.api.dhl.com/mydhlapi/test');
@@ -39,6 +41,7 @@ export const dhl = {
   configured: (env) => !!env.DHL_API_KEY,
 
   async rates({ env, settings, address, boxes, declaredValueBase }) {
+    if (isXmlpi(env)) return xmlpiRates({ env, settings, address, boxes, declaredValueBase });
     const o = settings.shipping.origin;
     const intl = address.country !== o.country;
     const d = await call(env, settings, 'POST', '/rates', {
@@ -66,6 +69,7 @@ export const dhl = {
 
   /** Create a shipment: returns { tracking, labelPdfBase64, invoicePdfBase64, raw } */
   async createShipment({ env, settings, order, boxes }) {
+    if (isXmlpi(env)) throw new Error('Label creation needs MyDHL API credentials. Your DHL XML Services Site ID gives live rates; book this shipment in MyDHL+ and enter the tracking number under “Shipping & tracking”.');
     const o = settings.shipping.origin, a = order.address;
     const intl = a.country !== o.country;
     const today = new Date().toISOString().slice(0, 10);

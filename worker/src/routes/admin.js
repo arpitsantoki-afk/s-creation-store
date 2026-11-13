@@ -266,8 +266,8 @@ export function adminRoutes(r) {
     if (typeof b.test === 'boolean') settings.shipping.dhl = { ...settings.shipping.dhl, test: b.test };
     settings.shipping.dhl = { ...settings.shipping.dhl, productCodes: [] };
     const missing = ['DHL_API_KEY'].filter((k) => !env[k]);
-    const { dhlHost } = await import('../shipping/dhl.js');
-    const out = { endpoint: dhlHost(env, settings), environment: settings.shipping?.dhl?.test === false ? 'live' : 'test', enabledInSettings: !!settings.shipping?.dhl?.enabled, missingSecrets: missing,
+    const { dhlHost, isXmlpi, xmlpiHost } = await import('../shipping/dhl.js');
+    const out = { api: isXmlpi(env) ? 'DHL XML Services (Site ID)' : 'MyDHL API', endpoint: isXmlpi(env) ? xmlpiHost(settings) : dhlHost(env, settings), environment: settings.shipping?.dhl?.test === false ? 'live' : 'test', enabledInSettings: !!settings.shipping?.dhl?.enabled, missingSecrets: missing,
       origin: settings.shipping?.origin, destination: { country: clean(b.country || 'US', 2).toUpperCase(), postcode: clean(b.postcode || '10001', 20), city: clean(b.city || 'New York', 80) } };
     if (missing.length) return json({ ok: false, ...out, error: 'Enter your DHL API key in the box above and click “Save DHL credentials”.' });
     out.credentials = { key: true, secret: !!env.DHL_API_SECRET, accountNumber: !!env.DHL_ACCOUNT_NUMBER };
