@@ -53,7 +53,7 @@ These are seeded so the site works end-to-end — **replace them in the dashboar
 
 ### 1. GitHub
 1. Create a repo (e.g. `s-creation-store`) and push this folder to `main`.
-2. **Settings → Pages → Source: GitHub Actions.**
+2. **Settings → Pages → Source: GitHub Actions.** The site goes live as a preview at `https://<user>.github.io/s-creation-store/`. GitHub Pages needs a **public** repo on the Free plan; private repos need GitHub Pro or Team.
 3. **Settings → Secrets and variables → Actions**
    * Variable `API_URL` = `https://api.screationindia.in`
    * Secrets `CLOUDFLARE_API_TOKEN` (template "Edit Cloudflare Workers" + D1 edit) and `CLOUDFLARE_ACCOUNT_ID`.
@@ -65,6 +65,7 @@ These are seeded so the site works end-to-end — **replace them in the dashboar
    * `A @ → 185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`
    * `CNAME www → <your-github-user>.github.io`
 4. GitHub → Settings → Pages → Custom domain `screationindia.in` → tick **Enforce HTTPS** once the certificate is ready.
+5. Add the repository variable `CUSTOM_DOMAIN` = `true` (Settings → Secrets and variables → Actions → Variables), then click **Publish**. The site now builds for the domain root instead of the preview path.
    *(The build writes the `CNAME` file automatically.)*
 
 ### 3. Cloudflare backend

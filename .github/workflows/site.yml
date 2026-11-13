@@ -27,8 +27,12 @@ jobs:
       - name: Build static site from the live API
         run: node site/build.mjs
         env:
-          API_URL: ${{ vars.API_URL }}            # e.g. https://api.screationindia.in
+          API_URL: ${{ vars.API_URL }}            # e.g. https://api.screationindia.in (empty = build from content/)
           REQUIRE_API: ${{ vars.API_URL != '' && '1' || '0' }}
+          # Until screationindia.in points at GitHub Pages, the site is served as a preview at
+          # https://<owner>.github.io/<repo>/. Set repository variable CUSTOM_DOMAIN=true after the DNS switch.
+          BASE_PATH: ${{ vars.CUSTOM_DOMAIN != 'true' && format('/{0}', github.event.repository.name) || '' }}
+          SITE_URL: ${{ vars.CUSTOM_DOMAIN != 'true' && format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) || '' }}
       - uses: actions/upload-pages-artifact@v3
         with: { path: dist }
   deploy:
