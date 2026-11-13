@@ -1,4 +1,4 @@
-# Deployed by .github/workflows/worker.yml (see .github/scripts/deploy-worker.sh)
+# Deployed by .github/workflows/worker.yml (see .github/scripts/deploy-worker.sh). Secrets sync from GitHub on each run.
 name = "screation-api"
 main = "src/index.js"
 compatibility_date = "2025-09-01"
