@@ -11,14 +11,17 @@ const auth = (env) => 'Basic ' + btoa(`${env.DHL_API_KEY}:${env.DHL_API_SECRET |
 
 async function call(env, settings, method, path, body) {
   const r = await fetch(host(env, settings) + path, {
-    method, headers: { authorization: auth(env), 'DHL-API-Key': env.DHL_API_KEY, 'content-type': 'application/json', accept: 'application/json', 'Message-Reference': crypto.randomUUID().replace(/-/g, '').slice(0, 32) },
+    method, headers: { authorization: auth(env), ...(env.DHL_API_SECRET ? {} : { 'DHL-API-Key': env.DHL_API_KEY }), 'content-type': 'application/json', accept: 'application/json', 'Message-Reference': crypto.randomUUID().replace(/-/g, '').slice(0, 32) },
     body: body ? JSON.stringify(body) : undefined,
   });
-  const d = await r.json().catch(() => ({}));
+  const raw = await r.text();
+  let d = {}; try { d = JSON.parse(raw); } catch { /* not JSON */ }
   if (!r.ok) {
-    const msg = d.detail || d.title || d.message || `HTTP ${r.status}`;
-    const hint = r.status === 401 ? ' (DHL rejected the credentials for this environment — MyDHL API needs the API key + secret issued for MyDHL; check test vs live)' : '';
-    throw new Error(`DHL ${r.status}: ${msg}${d.additionalDetails ? ' – ' + d.additionalDetails.join('; ') : ''}${hint}`);
+    const extra = Array.isArray(d.additionalDetails) ? d.additionalDetails.map((x) => (typeof x === 'string' ? x : JSON.stringify(x))) : [];
+    const msg = [d.title, d.detail, d.message, ...extra].filter(Boolean).join(' – ') || raw.slice(0, 600) || `HTTP ${r.status}`;
+    const err = new Error(`DHL ${r.status}: ${msg}${r.status === 401 ? ' (DHL rejected the credentials for this environment — check test vs live)' : ''}`);
+    err.dhl = { status: r.status, body: d && Object.keys(d).length ? d : raw.slice(0, 2000), request: body };
+    throw err;
   }
   return d;
 }

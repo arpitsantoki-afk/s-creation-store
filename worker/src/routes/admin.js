@@ -271,7 +271,7 @@ export function adminRoutes(r) {
     try {
       const rates = await carriers.dhl.rates({ env, settings, address: out.destination, boxes: packBoxes(10000, settings), declaredValueBase: 30000 });
       return json({ ok: rates.length > 0, ...out, rates, ...(rates.length ? {} : { error: 'DHL answered but returned no products for this lane/date.' }) });
-    } catch (e) { return json({ ok: false, ...out, error: e.message }); }
+    } catch (e) { return json({ ok: false, error: e.message, dhlResponse: e.dhl?.body, sentToDhl: e.dhl?.request, ...out }); }
   });
 
   A('POST', '/api/admin/fx/refresh', 'settings', async (req, env) => json({ fx: await refreshFx(env, await getSettings(env)) }));
