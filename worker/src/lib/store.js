@@ -64,3 +64,14 @@ export async function updateOrder(env, id, patch, event) {
 export async function logEvent(env, orderId, type, data) {
   await env.DB.prepare('INSERT INTO order_events (order_id, type, data) VALUES (?, ?, ?)').bind(orderId, type, data ? JSON.stringify(data) : null).run();
 }
+
+// Credentials entered in the dashboard (write-only; never sent back to the browser or exported).
+export const DASHBOARD_SECRETS = ['DHL_API_KEY', 'DHL_API_SECRET', 'DHL_ACCOUNT_NUMBER'];
+export async function getStoredSecrets(env) {
+  const row = await env.DB.prepare("SELECT value FROM settings WHERE key = 'secrets'").first();
+  return row ? JSON.parse(row.value) : {};
+}
+export async function saveStoredSecrets(env, obj) {
+  await env.DB.prepare("INSERT INTO settings (key, value, updated_at) VALUES ('secrets', ?, datetime('now')) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at")
+    .bind(JSON.stringify(obj)).run();
+}

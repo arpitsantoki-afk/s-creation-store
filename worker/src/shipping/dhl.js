@@ -5,15 +5,21 @@ import { totalKg } from './packing.js';
 // Test vs live is chosen in Dashboard → Settings → Shipping (“Use DHL test environment”).
 const host = (env, settings) => (settings.shipping?.dhl?.test === false ? 'https://express.api.dhl.com/mydhlapi' : 'https://express.api.dhl.com/mydhlapi/test');
 export const dhlHost = host;
-const auth = (env) => 'Basic ' + btoa(`${env.DHL_API_KEY}:${env.DHL_API_SECRET}`);
+// MyDHL API uses Basic auth (API key/username + secret/password). We also send the key as DHL-API-Key
+// so single-key DHL products work where supported; DHL's error message is shown in the dashboard test.
+const auth = (env) => 'Basic ' + btoa(`${env.DHL_API_KEY}:${env.DHL_API_SECRET || ''}`);
 
 async function call(env, settings, method, path, body) {
   const r = await fetch(host(env, settings) + path, {
-    method, headers: { authorization: auth(env), 'content-type': 'application/json', accept: 'application/json', 'Message-Reference': crypto.randomUUID().replace(/-/g, '').slice(0, 32) },
+    method, headers: { authorization: auth(env), 'DHL-API-Key': env.DHL_API_KEY, 'content-type': 'application/json', accept: 'application/json', 'Message-Reference': crypto.randomUUID().replace(/-/g, '').slice(0, 32) },
     body: body ? JSON.stringify(body) : undefined,
   });
   const d = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error('DHL: ' + (d.detail || d.title || d.message || r.status) + (d.additionalDetails ? ' – ' + d.additionalDetails.join('; ') : ''));
+  if (!r.ok) {
+    const msg = d.detail || d.title || d.message || `HTTP ${r.status}`;
+    const hint = r.status === 401 ? ' (DHL rejected the credentials for this environment — MyDHL API needs the API key + secret issued for MyDHL; check test vs live)' : '';
+    throw new Error(`DHL ${r.status}: ${msg}${d.additionalDetails ? ' – ' + d.additionalDetails.join('; ') : ''}${hint}`);
+  }
   return d;
 }
 
@@ -27,7 +33,7 @@ function plannedDate(daysAhead = 1) {
 
 export const dhl = {
   id: 'dhl',
-  configured: (env) => !!(env.DHL_API_KEY && env.DHL_API_SECRET && env.DHL_ACCOUNT_NUMBER),
+  configured: (env) => !!env.DHL_API_KEY,
 
   async rates({ env, settings, address, boxes, declaredValueBase }) {
     const o = settings.shipping.origin;
@@ -37,7 +43,7 @@ export const dhl = {
         shipperDetails: { postalCode: o.postcode, cityName: o.city, countryCode: o.country },
         receiverDetails: { postalCode: address.postcode, cityName: address.city, countryCode: address.country },
       },
-      accounts: [{ typeCode: 'shipper', number: env.DHL_ACCOUNT_NUMBER }],
+      accounts: env.DHL_ACCOUNT_NUMBER ? [{ typeCode: 'shipper', number: env.DHL_ACCOUNT_NUMBER }] : undefined,
       plannedShippingDateAndTime: plannedDate(1), unitOfMeasurement: 'metric', isCustomsDeclarable: intl,
       monetaryAmount: intl ? [{ typeCode: 'declaredValue', value: Math.round(declaredValueBase), currency: settings.baseCurrency }] : undefined,
       packages: boxes.map((b) => ({ weight: b.weight, dimensions: { length: b.l, width: b.w, height: b.h } })),

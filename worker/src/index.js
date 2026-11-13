@@ -3,7 +3,7 @@ import { Router, json, corsHeaders, HttpError } from './lib/http.js';
 import { publicRoutes } from './routes/public.js';
 import { adminRoutes } from './routes/admin.js';
 import { accountRoutes } from './routes/account.js';
-import { getSettings } from './lib/store.js';
+import { getSettings, getStoredSecrets, DASHBOARD_SECRETS } from './lib/store.js';
 import { refreshFx, triggerPublish } from './lib/services.js';
 
 const router = new Router();
@@ -16,6 +16,8 @@ export default {
     const url = new URL(req.url);
     // The API's public URL is wherever this request arrived (workers.dev now, api.screationindia.in later).
     env = { ...env, API_URL: url.origin };
+    // Credentials saved in the dashboard override GitHub/Cloudflare secrets of the same name.
+    try { const st = await getStoredSecrets(env); for (const k of DASHBOARD_SECRETS) if (st[k]) env[k] = st[k]; } catch { /* table not ready */ }
     let settings = null;
     try { settings = await getSettings(env); } catch { /* DB not migrated yet */ }
     const cors = corsHeaders(req, env, settings);

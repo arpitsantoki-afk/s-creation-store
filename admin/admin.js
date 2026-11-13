@@ -175,7 +175,7 @@ async function viewDashboard() {
     <div class="card"><h2>Setup checklist</h2>
       ${ok(integ.stripe.configured, 'Stripe', integ.stripe.configured ? `${integ.stripe.mode} mode${integ.stripe.webhook ? '' : ' · webhook secret missing'}` : 'add STRIPE_SECRET_KEY')}
       ${ok(integ.paypal.configured, 'PayPal', integ.paypal.configured ? integ.paypal.mode : 'add PAYPAL_CLIENT_ID / SECRET')}
-      ${ok(integ.dhl.configured, 'DHL Express', integ.dhl.configured ? integ.dhl.env : 'add DHL_API_KEY / SECRET / ACCOUNT — manual zone rates in use')}
+      ${ok(integ.dhl.configured, 'DHL Express', integ.dhl.configured ? 'key saved — test it in Settings → Shipping' : 'add your DHL API key in Settings → Shipping — zone rates in use')}
       ${ok(integ.github.configured, 'Publishing (GitHub)', integ.github.repo || 'add GITHUB_TOKEN')}
       ${ok(integ.email.configured, 'Emails — orders, invoices, password resets (Resend)', integ.email.from || 'add RESEND_API_KEY + EMAIL_FROM')}
       ${ok(integ.google.configured, 'Google sign-in', integ.google.configured ? 'customers + team' : 'add GOOGLE_CLIENT_ID / SECRET')}
@@ -583,7 +583,12 @@ async function viewSettings() {
           ${F.text('shipping.origin.email', 'Email')}${F.text('shipping.origin.line1', 'Address')}${F.text('shipping.origin.city', 'City')}${F.text('shipping.origin.state', 'State code')}${F.text('shipping.origin.postcode', 'PIN code')}${F.text('shipping.origin.country', 'Country (ISO)')}${F.text('shipping.origin.gstin', 'GSTIN', { hint: 'printed on export docs' })}</div></div>
         <div class="card"><h2>DHL Express <span>${dot(integ.dhl.configured)}</span></h2><div class="grid3">${F.bool('shipping.dhl.enabled', 'Use DHL live rates')}${F.bool('shipping.dhl.test', 'Use DHL test environment')}${F.sel('shipping.dhl.incoterm', 'Incoterm', [['DAP', 'DAP — buyer pays duties'], ['DDP', 'DDP — you pay duties']])}
           ${F.csv('shipping.dhl.productCodes', 'Limit DHL services (optional)', { hint: 'leave EMPTY to show all. Codes only, e.g. P = Express Worldwide, N = Domestic Express. Not the API key.', upper: true })}${F.num('shipping.handlingPct', 'Handling % on top of DHL rate')}</div>
-          <p class="muted" style="font-size:12px">GitHub secrets: <b>DHL_API_KEY</b> = MyDHL API username, <b>DHL_API_SECRET</b> = MyDHL API password, <b>DHL_ACCOUNT_NUMBER</b> = your 9-digit DHL Express account. Untick “test environment” if your credentials are for production. Save settings before testing.</p>
+          <div class="card" style="background:#faf9f7;margin:14px 0 6px"><h3>DHL credentials</h3><div class="grid3" id="dhlcreds">
+            <label class="f">API key <small id="h_DHL_API_KEY"></small><input class="i" type="password" autocomplete="off" data-sec="DHL_API_KEY" placeholder="Paste your DHL API key"></label>
+            <label class="f">API secret / password <small>optional · <span id="h_DHL_API_SECRET"></span></small><input class="i" type="password" autocomplete="off" data-sec="DHL_API_SECRET" placeholder="If DHL gave you one"></label>
+            <label class="f">DHL account number <small>optional · <span id="h_DHL_ACCOUNT_NUMBER"></span></small><input class="i" autocomplete="off" data-sec="DHL_ACCOUNT_NUMBER" placeholder="e.g. 123456789"></label></div>
+            <div class="row" style="margin-top:10px"><button class="btn sm" data-savesec>Save DHL credentials</button><button class="btn ghost sm" data-clearsec>Remove</button><span class="muted" style="font-size:12px">Stored securely; never shown again after saving.</span></div></div>
+          <p class="muted" style="font-size:12px">Untick “Use DHL test environment” if your key is for live/production, then Save settings before testing.</p>
           <div class="row" style="margin-top:8px"><input class="i" id="dhlc" value="US" style="width:70px" title="Country"><input class="i" id="dhlp" value="10001" style="width:110px" title="Postcode"><input class="i" id="dhlcity" value="New York" style="width:160px" title="City"><button class="btn sm" data-dhltest>Test DHL connection</button></div>
           <pre id="dhlout" style="white-space:pre-wrap;font-size:12px;background:#faf9f7;border:1px solid var(--line);padding:10px;margin-top:10px;max-height:320px;overflow:auto" hidden></pre></div>
         <div class="card"><h2>Packing</h2><div class="grid4">${F.num('shipping.packaging.maxBoxKg', 'Max kg per box')}${F.num('shipping.packaging.box.l', 'Box L (cm)')}${F.num('shipping.packaging.box.w', 'Box W (cm)')}${F.num('shipping.packaging.box.h', 'Box H (cm)')}${F.num('shipping.packaging.packagingPct', 'Packaging weight %')}</div></div>
@@ -613,6 +618,12 @@ async function viewSettings() {
     bind($('#pane'), S);
     $$('[data-tab]').forEach((b) => (b.onclick = () => { stab = b.dataset.tab; render(); }));
     $$('[data-lang]').forEach((c) => (c.onchange = () => { const l = c.dataset.lang; S.languages.enabled = c.checked ? [...new Set([...S.languages.enabled, l])] : S.languages.enabled.filter((x) => x !== l); dirty = true; render(); }));
+    if ($('#dhlcreds')) {
+      const paint = async () => { const { secrets } = await api('/api/admin/secrets'); for (const [k, v] of Object.entries(secrets)) { const el = $('#h_' + k); if (el) el.textContent = v.set ? `saved ••••${v.hint}` : 'not set'; } };
+      paint();
+      $('[data-savesec]').onclick = async () => { const body = {}; $$('[data-sec]').forEach((i) => { if (i.value.trim()) body[i.dataset.sec] = i.value.trim(); }); if (!Object.keys(body).length) return toast('Type the key first', true); await api('/api/admin/secrets', { method: 'PUT', body }); $$('[data-sec]').forEach((i) => (i.value = '')); toast('DHL credentials saved'); paint(); };
+      $('[data-clearsec]').onclick = async () => { if (!confirm('Remove the DHL credentials saved in the dashboard?')) return; await api('/api/admin/secrets', { method: 'PUT', body: { DHL_API_KEY: '', DHL_API_SECRET: '', DHL_ACCOUNT_NUMBER: '' } }); toast('Removed'); paint(); };
+    }
     const dt = $('[data-dhltest]'); if (dt) dt.onclick = async () => {
       const o = $('#dhlout'); o.hidden = false; o.textContent = 'Asking DHL…';
       try { const d = await api('/api/admin/shipping/test', { method: 'POST', body: { country: $('#dhlc').value, postcode: $('#dhlp').value, city: $('#dhlcity').value } });

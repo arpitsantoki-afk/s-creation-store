@@ -1,6 +1,6 @@
 import { json, bad, body, uid, clean, HttpError } from '../lib/http.js';
 import { pwIter, needsRehash, sign, verify, hashPassword, checkPassword, safeEqual } from '../lib/crypto.js';
-import { getSettings, saveSettings, getFx, listProducts, getProduct, saveProduct, getOrder, updateOrder, logEvent, rowToOrder, starterProducts } from '../lib/store.js';
+import { getStoredSecrets, saveStoredSecrets, DASHBOARD_SECRETS, getSettings, saveSettings, getFx, listProducts, getProduct, saveProduct, getOrder, updateOrder, logEvent, rowToOrder, starterProducts } from '../lib/store.js';
 import { refreshFx, triggerPublish, publishStatus, sendEmail, orderEmailHtml } from '../lib/services.js';
 import { carriers, packBoxes } from '../shipping/index.js';
 import { gateways } from '../payments/index.js';
@@ -245,15 +245,29 @@ export function adminRoutes(r) {
     await saveSettings(env, b);
     return json({ settings: await getSettings(env) });
   });
+  // Dashboard-managed credentials: write-only. GET shows only whether each is set (+ last 4 chars).
+  A('GET', '/api/admin/secrets', 'settings', async (req, env) => {
+    const st = await getStoredSecrets(env);
+    return json({ secrets: Object.fromEntries(DASHBOARD_SECRETS.map((k) => [k, { set: !!(st[k] || env[k]), source: st[k] ? 'dashboard' : env[k] ? 'github' : null, hint: (st[k] || env[k] || '').slice(-4) }])) });
+  });
+  A('PUT', '/api/admin/secrets', 'settings', async (req, env) => {
+    const b = await body(req);
+    const st = await getStoredSecrets(env);
+    for (const k of DASHBOARD_SECRETS) if (k in b) { const v = String(b[k] ?? '').trim().slice(0, 300); if (v) st[k] = v; else delete st[k]; }
+    await saveStoredSecrets(env, st);
+    return json({ ok: true });
+  });
+
   // Diagnose DHL: runs one sample rate request and returns DHL's raw answer.
   A('POST', '/api/admin/shipping/test', 'settings', async (req, env) => {
     const b = await body(req);
     const settings = await getSettings(env);
-    const missing = ['DHL_API_KEY', 'DHL_API_SECRET', 'DHL_ACCOUNT_NUMBER'].filter((k) => !env[k]);
+    const missing = ['DHL_API_KEY'].filter((k) => !env[k]);
     const { dhlHost } = await import('../shipping/dhl.js');
     const out = { endpoint: dhlHost(env, settings), environment: settings.shipping?.dhl?.test === false ? 'live' : 'test', enabledInSettings: !!settings.shipping?.dhl?.enabled, missingSecrets: missing,
       origin: settings.shipping?.origin, destination: { country: clean(b.country || 'US', 2).toUpperCase(), postcode: clean(b.postcode || '10001', 20), city: clean(b.city || 'New York', 80) } };
-    if (missing.length) return json({ ok: false, ...out, error: `Missing GitHub secrets: ${missing.join(', ')} — add them and re-run “Deploy API worker”.` });
+    if (missing.length) return json({ ok: false, ...out, error: 'Enter your DHL API key in the box above and click “Save DHL credentials”.' });
+    out.credentials = { key: true, secret: !!env.DHL_API_SECRET, accountNumber: !!env.DHL_ACCOUNT_NUMBER };
     try {
       const rates = await carriers.dhl.rates({ env, settings, address: out.destination, boxes: packBoxes(10000, settings), declaredValueBase: 30000 });
       return json({ ok: rates.length > 0, ...out, rates, ...(rates.length ? {} : { error: 'DHL answered but returned no products for this lane/date.' }) });
