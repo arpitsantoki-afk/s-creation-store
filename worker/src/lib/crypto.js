@@ -40,6 +40,10 @@ export async function hashPassword(pw, iter = 100000) {
   const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations: iter }, key, 256);
   return `pbkdf2$${iter}$${b64url(salt)}$${b64url(bits)}`;
 }
+/** Iterations from env (free plan: 20000 to stay inside the 10 ms CPU limit; paid plan: 100000). */
+export const pwIter = (env) => Math.max(10000, +env?.PBKDF2_ITERATIONS || 100000);
+export const needsRehash = (stored, env) => +String(stored).split('$')[1] < pwIter(env);
+
 export async function checkPassword(pw, stored) {
   const [, iter, salt, hash] = String(stored).split('$');
   const key = await crypto.subtle.importKey('raw', enc.encode(pw), 'PBKDF2', false, ['deriveBits']);

@@ -1,5 +1,5 @@
 import { json, bad, body, uid, clean, HttpError } from '../lib/http.js';
-import { sign, verify, hashPassword, checkPassword, safeEqual } from '../lib/crypto.js';
+import { pwIter, needsRehash, sign, verify, hashPassword, checkPassword, safeEqual } from '../lib/crypto.js';
 import { getSettings, saveSettings, getFx, listProducts, getProduct, saveProduct, getOrder, updateOrder, logEvent, rowToOrder, starterProducts } from '../lib/store.js';
 import { refreshFx, triggerPublish, publishStatus, sendEmail, orderEmailHtml } from '../lib/services.js';
 import { carriers, packBoxes } from '../shipping/index.js';
@@ -50,7 +50,7 @@ export function adminRoutes(r) {
     if (String(b.password || '').length < 10) throw bad('Password must be at least 10 characters');
     const email = clean(b.email, 160).toLowerCase();
     if (!/^\S+@\S+\.\S+$/.test(email)) throw bad('Valid email required');
-    await env.DB.prepare("INSERT INTO admins (email, name, pass_hash, role, status) VALUES (?, ?, ?, 'owner', 'active')").bind(email, clean(b.name, 80), await hashPassword(b.password)).run();
+    await env.DB.prepare("INSERT INTO admins (email, name, pass_hash, role, status) VALUES (?, ?, ?, 'owner', 'active')").bind(email, clean(b.name, 80), await hashPassword(b.password, pwIter(env))).run();
     return json({ ok: true });
   });
 
@@ -65,6 +65,7 @@ export function adminRoutes(r) {
       await env.DB.prepare('INSERT INTO login_attempts (email, at) VALUES (?, ?)').bind(email, Date.now()).run();
       throw new HttpError(401, 'Wrong email or password');
     }
+    if (needsRehash(a.pass_hash, env)) await env.DB.prepare('UPDATE admins SET pass_hash = ? WHERE id = ?').bind(await hashPassword(String(b.password), pwIter(env)), a.id).run();
     await env.DB.batch([env.DB.prepare("UPDATE admins SET last_login = datetime('now'), status = 'active' WHERE id = ?").bind(a.id), env.DB.prepare('DELETE FROM login_attempts WHERE email = ? OR at < ?').bind(email, since)]);
     return json({ token: await adminToken(env, a), user: { email: a.email, name: a.name, role: a.role, perms: ROLES[a.role] || [] } });
   });
@@ -80,7 +81,7 @@ export function adminRoutes(r) {
     const a = await env.DB.prepare('SELECT * FROM admins WHERE id = ?').bind(s.id).first();
     if (a.pass_hash && !(await checkPassword(String(b.current || ''), a.pass_hash))) throw bad('Current password is wrong');
     if (String(b.next || '').length < 10) throw bad('New password must be at least 10 characters');
-    await env.DB.prepare('UPDATE admins SET pass_hash = ?, session_v = session_v + 1 WHERE id = ?').bind(await hashPassword(b.next), s.id).run();
+    await env.DB.prepare('UPDATE admins SET pass_hash = ?, session_v = session_v + 1 WHERE id = ?').bind(await hashPassword(b.next, pwIter(env)), s.id).run();
     const fresh = await env.DB.prepare('SELECT * FROM admins WHERE id = ?').bind(s.id).first();
     return json({ ok: true, token: await adminToken(env, fresh) });
   });
@@ -95,7 +96,7 @@ export function adminRoutes(r) {
     if (await env.DB.prepare('SELECT id FROM admins WHERE lower(email) = ?').bind(email).first()) throw bad('This person already has access');
     const pw = String(b.password || '');
     if (pw && pw.length < 10) throw bad('Password must be at least 10 characters (or leave empty for Google-only sign-in)');
-    await env.DB.prepare('INSERT INTO admins (email, name, pass_hash, role, status) VALUES (?, ?, ?, ?, ?)').bind(email, clean(b.name, 80), pw ? await hashPassword(pw) : '', b.role, pw ? 'active' : 'invited').run();
+    await env.DB.prepare('INSERT INTO admins (email, name, pass_hash, role, status) VALUES (?, ?, ?, ?, ?)').bind(email, clean(b.name, 80), pw ? await hashPassword(pw, pwIter(env)) : '', b.role, pw ? 'active' : 'invited').run();
     const settings = await getSettings(env);
     const site = (settings.store.siteUrl || env.SITE_URL).replace(/\/$/, '');
     ctx.waitUntil(sendEmail(env, { to: email, subject: `You've been given access to the ${settings.store.name} dashboard`, html: `<p>${s.name || s.email} invited you as <b>${b.role}</b>.</p><p>Sign in at <a href="${site}/admin/">${site}/admin/</a> ${googleConfigured(env) ? 'with Google using this email address' : 'with the password you were given'}.</p>` }).catch(() => {}));
@@ -110,7 +111,7 @@ export function adminRoutes(r) {
     if (b.status && !['active', 'disabled', 'invited'].includes(b.status)) throw bad('Invalid status');
     if (b.password && String(b.password).length < 10) throw bad('Password must be at least 10 characters');
     await env.DB.prepare('UPDATE admins SET role = COALESCE(?, role), status = COALESCE(?, status), name = COALESCE(?, name), pass_hash = COALESCE(?, pass_hash), session_v = session_v + ? WHERE id = ?')
-      .bind(b.role || null, b.status || null, b.name ?? null, b.password ? await hashPassword(b.password) : null, b.status === 'disabled' || b.password ? 1 : 0, t.id).run();
+      .bind(b.role || null, b.status || null, b.name ?? null, b.password ? await hashPassword(b.password, pwIter(env)) : null, b.status === 'disabled' || b.password ? 1 : 0, t.id).run();
     return json({ ok: true });
   });
   A('DELETE', '/api/admin/team/:id', 'team', async (req, env, ctx, p, s) => {
@@ -193,7 +194,7 @@ export function adminRoutes(r) {
 
   // ---- media (R2) ----
   A('POST', '/api/admin/media', 'products', async (req, env) => {
-    if (!env.MEDIA) throw bad('Photo storage is not switched on yet: enable R2 in the Cloudflare dashboard (R2 → Get started), then re-run the “Deploy API worker” action.');
+    if (!env.MEDIA && !(env.GITHUB_TOKEN && env.GITHUB_REPO)) throw bad('Photo storage is not set up: add the PUBLISH_TOKEN GitHub secret (photos are stored in your GitHub repo) or enable Cloudflare R2, then re-run “Deploy API worker”.');
     const fd = await req.formData();
     const file = fd.get('file');
     if (!file || typeof file === 'string') throw bad('No file');
@@ -203,17 +204,31 @@ export function adminRoutes(r) {
     const ext = { 'image/webp': 'webp', 'image/jpeg': 'jpg', 'image/png': 'png', 'image/avif': 'avif', 'image/gif': 'gif', 'image/svg+xml': 'svg' }[file.type];
     const name = slugify(String(file.name || '').replace(/\.[^.]+$/, '')).slice(0, 40) || 'img';
     const key = `products/${folder}/${name}-${uid(4)}.${ext}`;
-    await env.MEDIA.put(key, file.stream(), { httpMetadata: { contentType: file.type } });
-    return json({ key, url: `${env.API_URL}/media/${key}` });
+    if (env.MEDIA) {
+      await env.MEDIA.put(key, file.stream(), { httpMetadata: { contentType: file.type } });
+      return json({ key, url: `${env.API_URL}/media/${key}` });
+    }
+    // Free-plan option: commit the image to the site repo; it is served by GitHub Pages after the rebuild.
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const path = `site/static/uploads/${key}`;
+    const r = await fetch(`https://api.github.com/repos/${env.GITHUB_REPO}/contents/${path}`, {
+      method: 'PUT', headers: { authorization: `Bearer ${env.GITHUB_TOKEN}`, accept: 'application/vnd.github+json', 'user-agent': 'screation-worker', 'content-type': 'application/json' },
+      body: JSON.stringify({ message: `Upload product photo ${key}`, content: b64(bytes), branch: 'main' }),
+    });
+    if (!r.ok) throw bad(`GitHub upload failed (${r.status}): ${(await r.text()).slice(0, 200)}`);
+    const site = ((await getSettings(env)).store.siteUrl || env.SITE_URL).replace(/\/$/, '');
+    return json({ key, url: `${(env.SITE_URL || site).replace(/\/$/, '')}/assets/uploads/${key}`, pending: true });
   });
   A('GET', '/api/admin/media', 'products', async (req, env) => {
     const prefix = new URL(req.url).searchParams.get('prefix') || 'products/';
+    if (!env.MEDIA) return json({ objects: [] });
     const l = await env.MEDIA.list({ prefix, limit: 500 });
     return json({ objects: l.objects.map((o) => ({ key: o.key, size: o.size, uploaded: o.uploaded, url: `${env.API_URL}/media/${o.key}` })) });
   });
   A('DELETE', '/api/admin/media', 'products', async (req, env) => {
     const key = new URL(req.url).searchParams.get('key');
     if (!key || !key.startsWith('products/')) throw bad('Invalid key');
+    if (!env.MEDIA) throw bad('Delete photos from the repo folder site/static/uploads/ on GitHub');
     await env.MEDIA.delete(key);
     return json({ ok: true });
   });
@@ -293,7 +308,7 @@ export function adminRoutes(r) {
     const res = await carriers.dhl.createShipment({ env, settings, order: o, boxes });
     const docs = {};
     for (const [k, data] of [['label', res.labelPdfBase64], ['commercial-invoice', res.invoicePdfBase64]]) {
-      if (!data) continue;
+      if (!data || !env.MEDIA) continue; // without R2 the label is returned once below
       const key = `private/orders/${o.number}/${k}-${res.tracking}.pdf`;
       await env.MEDIA.put(key, Uint8Array.from(atob(data), (c) => c.charCodeAt(0)), { httpMetadata: { contentType: 'application/pdf' } });
       docs[k] = key;
@@ -302,7 +317,7 @@ export function adminRoutes(r) {
     const next = await updateOrder(env, p.id, { shipment, tracking: res.tracking, shipmentDocs: docs, status: ['paid', 'processing'].includes(o.status) ? 'shipped' : o.status },
       { type: 'dhl_shipment', data: { by: s.email, tracking: res.tracking, boxes: boxes.length, kg: res.kg } });
     await shippedEmail(env, ctx, next);
-    return json({ order: next });
+    return json({ order: next, ...(env.MEDIA ? {} : { labelPdfBase64: res.labelPdfBase64, invoicePdfBase64: res.invoicePdfBase64 }) });
   });
 
   // Documents: DHL label / commercial invoice (stored), tax invoice + packing slip (generated)

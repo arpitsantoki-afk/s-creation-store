@@ -1,6 +1,6 @@
 // Google sign-in (admins + customers) and the customer account API.
 import { json, bad, body, clean, HttpError } from '../lib/http.js';
-import { sign, verify, hashPassword, checkPassword } from '../lib/crypto.js';
+import { pwIter, needsRehash, sign, verify, hashPassword, checkPassword } from '../lib/crypto.js';
 import { googleConfigured, googleStartUrl, googleCallback, adminToken, customerToken, requireCustomer, safeReturn, ROLES } from '../lib/auth.js';
 import { getSettings, rowToOrder, getOrder } from '../lib/store.js';
 import { sendEmail } from '../lib/services.js';
@@ -104,7 +104,7 @@ export function accountRoutes(r) {
     if (pw.length < 8) throw bad('Password must be at least 8 characters');
     const exists = await env.DB.prepare('SELECT id FROM customers WHERE lower(email) = ?').bind(email).first();
     if (exists) throw new HttpError(409, 'An account with this email already exists. Sign in or reset your password.');
-    await env.DB.prepare("INSERT INTO customers (email, name, pass_hash, marketing, last_login) VALUES (?, ?, ?, ?, datetime('now'))").bind(email, name, await hashPassword(pw), b.marketing ? 1 : 0).run();
+    await env.DB.prepare("INSERT INTO customers (email, name, pass_hash, marketing, last_login) VALUES (?, ?, ?, ?, datetime('now'))").bind(email, name, await hashPassword(pw, pwIter(env)), b.marketing ? 1 : 0).run();
     const c = await env.DB.prepare('SELECT * FROM customers WHERE lower(email) = ?').bind(email).first();
     ctx.waitUntil(sendVerify(env, settings, c).catch(() => {}));
     return json({ token: await customerToken(env, c), profile: profile(c) });
@@ -119,6 +119,7 @@ export function accountRoutes(r) {
       await fail(env, 'c:' + email);
       throw new HttpError(401, c && !c.pass_hash ? 'This account uses Google sign-in. Continue with Google, or reset your password to add one.' : 'Wrong email or password');
     }
+    if (needsRehash(c.pass_hash, env)) await env.DB.prepare('UPDATE customers SET pass_hash = ? WHERE id = ?').bind(await hashPassword(String(b.password), pwIter(env)), c.id).run();
     await env.DB.prepare("UPDATE customers SET last_login = datetime('now') WHERE id = ?").bind(c.id).run();
     return json({ token: await customerToken(env, c), profile: profile(c) });
   });
@@ -144,7 +145,7 @@ export function accountRoutes(r) {
     const c = await env.DB.prepare('SELECT * FROM customers WHERE id = ?').bind(t.id).first();
     if (!c || String(c.pass_hash || 'none').slice(-12) !== t.ph) throw bad('This reset link was already used. Please request a new one.');
     if (String(b.password || '').length < 8) throw bad('Password must be at least 8 characters');
-    await env.DB.prepare('UPDATE customers SET pass_hash = ?, email_verified = 1, session_v = session_v + 1 WHERE id = ?').bind(await hashPassword(b.password), c.id).run();
+    await env.DB.prepare('UPDATE customers SET pass_hash = ?, email_verified = 1, session_v = session_v + 1 WHERE id = ?').bind(await hashPassword(b.password, pwIter(env)), c.id).run();
     const fresh = await env.DB.prepare('SELECT * FROM customers WHERE id = ?').bind(c.id).first();
     return json({ token: await customerToken(env, fresh), profile: profile(fresh) });
   });
@@ -183,7 +184,7 @@ export function accountRoutes(r) {
     const b = await body(req);
     if (c.pass_hash && !(await checkPassword(String(b.current || ''), c.pass_hash))) throw bad('Current password is wrong');
     if (String(b.next || '').length < 8) throw bad('New password must be at least 8 characters');
-    await env.DB.prepare('UPDATE customers SET pass_hash = ?, session_v = session_v + 1 WHERE id = ?').bind(await hashPassword(b.next), c.id).run();
+    await env.DB.prepare('UPDATE customers SET pass_hash = ?, session_v = session_v + 1 WHERE id = ?').bind(await hashPassword(b.next, pwIter(env)), c.id).run();
     const fresh = await env.DB.prepare('SELECT * FROM customers WHERE id = ?').bind(c.id).first();
     return json({ token: await customerToken(env, fresh) }); // other devices are signed out
   });

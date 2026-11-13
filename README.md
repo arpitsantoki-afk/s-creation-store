@@ -68,8 +68,15 @@ These are seeded so the site works end-to-end — **replace them in the dashboar
 5. Add the repository variable `CUSTOM_DOMAIN` = `true` (Settings → Secrets and variables → Actions → Variables), then click **Publish**. The site now builds for the domain root instead of the preview path.
    *(The build writes the `CNAME` file automatically.)*
 
+### Running on free plans only
+Everything runs on free tiers: GitHub Pages (public repo), the Cloudflare Workers Free plan, D1, Workers AI, Resend (3,000 emails/month) and Google sign-in. Stripe and PayPal only charge per transaction.
+* **No card for Cloudflare:** skip R2. Product photos are then committed to this repo (`site/static/uploads/`) and served by GitHub Pages. This needs the `PUBLISH_TOKEN` secret. New photos show on the site after the automatic rebuild, about 2 minutes later.
+* **CPU limit:** the free plan allows 10 ms of CPU per request. Password hashing is therefore set to `PBKDF2_ITERATIONS = "20000"` in `wrangler.toml`, which takes about 3 ms; PDF invoices take about 5 ms.
+* **Moving to Workers Paid ($5/month):** raise `PBKDF2_ITERATIONS` to `100000`. Passwords upgrade automatically at each user's next sign-in.
+* **Daily caps:** the free plan allows 100,000 API requests per day and 100,000 database writes per day. That's ample for a B2B catalogue; if a cap is hit, requests fail until 00:00 UTC rather than being charged.
+
 ### 3. Cloudflare backend (automatic)
-1. Create a free Cloudflare account. Open **Workers & Pages** once, which sets up your `workers.dev` subdomain, and **R2 → Get started**, which turns on photo storage.
+1. Create a free Cloudflare account and open **Workers & Pages** once, which sets up your `workers.dev` subdomain. R2 (photo storage) is optional; see "Running on free plans only".
 2. Create an API token: **My Profile → API Tokens → Create Token**. Use the **"Edit Cloudflare Workers"** template, then **add the permission Account → D1 → Edit**. Copy the token, and also your **Account ID** (shown on the Workers & Pages page).
 3. In GitHub, go to **Settings → Secrets and variables → Actions → New repository secret** and add:
    * `CLOUDFLARE_API_TOKEN`: the token.

@@ -283,7 +283,11 @@ async function viewOrder(id) {
   if (ship) ship.onclick = async () => {
     if (!confirm('Book a DHL Express shipment for this order and create the label?')) return;
     ship.disabled = true; ship.textContent = 'Creating…';
-    try { await api(`/api/admin/orders/${id}/shipment`, { method: 'POST' }); toast('DHL shipment created — label ready'); viewOrder(id); }
+    try {
+      const d = await api(`/api/admin/orders/${id}/shipment`, { method: 'POST' });
+      if (d.labelPdfBase64) { const a = Object.assign(document.createElement('a'), { href: 'data:application/pdf;base64,' + d.labelPdfBase64, download: `DHL-label-${d.order.number}.pdf` }); a.click(); }
+      toast('DHL shipment created — label ready'); viewOrder(id);
+    }
     catch (e) { toast(e.message, true); ship.disabled = false; ship.textContent = 'Generate DHL label'; }
   };
   $$('[data-doc]').forEach((b) => (b.onclick = async () => {
@@ -425,10 +429,11 @@ function colourPane(p) {
       <label class="check mono" title="Second colour for two-tone"><input type="checkbox" data-twotone="${i}" ${c.hex2 ? 'checked' : ''}> 2-tone</label>
       ${c.hex2 ? F.color(`colors.${i}.hex2`) : '<span></span>'}
       <div class="row" style="gap:4px"><button class="iconbtn" data-cup="${i}" title="Move up">↑</button><button class="iconbtn" data-cdel="${i}" title="Remove colour">✕</button></div></div>
-    <div class="imgs">${(c.images || []).map((u, j) => `<div class="im"><img src="${esc(u)}" alt="" loading="lazy"><div class="ctl"><button data-imleft="${i}:${j}" title="Move left">←</button><button data-imdel="${i}:${j}" title="Remove">✕</button></div></div>`).join('')}
+    <div class="imgs">${(c.images || []).map((u, j) => `<div class="im"><img src="${esc(localPreviews[u] || u)}" alt="" loading="lazy" onerror="this.style.opacity=.25;this.title='Appears after the next site build'"><div class="ctl"><button data-imleft="${i}:${j}" title="Move left">←</button><button data-imdel="${i}:${j}" title="Remove">✕</button></div></div>`).join('')}
       <label class="drop" data-drop="${i}">+ Add photos<input type="file" accept="image/*" multiple hidden data-file="${i}"></label></div></div>`).join('')}</div>
   <div class="row" style="margin-top:12px"><button class="btn ghost" data-cadd>+ Add colour</button><span class="muted" id="upmsg"></span></div>`;
 }
+const localPreviews = {}; let pendingNote = false;
 async function toWebp(file) {
   if (file.type === 'image/svg+xml') return file;
   const bmp = await createImageBitmap(file);
@@ -448,9 +453,10 @@ function wireColours(p, render) {
         const fd = new FormData(); fd.append('file', await toWebp(f)); fd.append('folder', p.slug || p.name || 'product');
         const d = await api('/api/admin/media', { method: 'POST', body: fd });
         (p.colors[ci].images ||= []).push(d.url); dirty = true;
+        if (d.pending) { localPreviews[d.url] = URL.createObjectURL(f); pendingNote = true; }
       } catch (e) { toast(`${f.name}: ${e.message}`, true); }
     }
-    msg.textContent = ''; render(); toast('Photos uploaded — save the product to keep them.');
+    msg.textContent = ''; render(); toast(pendingNote ? 'Photos uploaded — save the product, then they go live with the next site build (about 2 minutes).' : 'Photos uploaded — save the product to keep them.');
   };
   pane.addEventListener('change', (e) => {
     if (e.target.dataset.file) upload(+e.target.dataset.file, e.target.files);

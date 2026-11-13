@@ -16,7 +16,7 @@ echo "D1: $DBID"
 
 if ! $W r2 bucket list 2>/dev/null | grep -q "screation-media"; then
   if ! $W r2 bucket create screation-media; then
-    echo "::warning title=R2 not enabled::Photo uploads are off. In Cloudflare open R2 → Get started (free tier), then re-run this workflow."
+    echo "::notice title=Photos stored in GitHub::Cloudflare R2 is not enabled, so product photos will be committed to this repo (needs the PUBLISH_TOKEN secret). That is fine on the free plan."
     python3 - "$CFG" <<'PY'
 import sys,re; p=sys.argv[1]; s=open(p).read(); s=re.sub(r'\[\[r2_buckets\]\][^\[]*', '', s); open(p,'w').write(s)
 PY
