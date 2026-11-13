@@ -6,6 +6,11 @@ on:
     paths: ['site/**', 'content/**', 'shared/**', 'admin/**', '.github/workflows/site.yml']
   repository_dispatch:
     types: [publish]          # sent by the dashboard "Publish site" button
+  workflow_run:
+    workflows: ['Deploy API worker']   # rebuild after the API deploys
+    types: [completed]
+  schedule:
+    - cron: '17 */6 * * *'    # safety net: rebuild every 6 hours
   workflow_dispatch:
 
 permissions:
@@ -24,11 +29,24 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
+      - name: Find the API URL
+        id: api
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -n "${{ vars.API_URL }}" ]; then echo "url=${{ vars.API_URL }}" >> "$GITHUB_OUTPUT"; exit 0; fi
+          if [ "${{ vars.CUSTOM_DOMAIN }}" = "true" ]; then echo "url=https://api.screationindia.in" >> "$GITHUB_OUTPUT"; exit 0; fi
+          if [ -n "$CF_TOKEN" ] && [ -n "$CF_ACCOUNT" ]; then
+            SUB=$(curl -fsS -H "Authorization: Bearer $CF_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT/workers/subdomain" | jq -r '.result.subdomain // empty' || true)
+            [ -n "$SUB" ] && echo "url=https://screation-api.$SUB.workers.dev" >> "$GITHUB_OUTPUT"
+          fi
+          true
       - name: Build static site from the live API
         run: node site/build.mjs
         env:
-          API_URL: ${{ vars.API_URL }}            # e.g. https://api.screationindia.in (empty = build from content/)
-          REQUIRE_API: ${{ vars.API_URL != '' && '1' || '0' }}
+          API_URL: ${{ steps.api.outputs.url }}         # empty = build from content/
+          PUBLIC_API_URL: ${{ steps.api.outputs.url }}
           # Until screationindia.in points at GitHub Pages, the site is served as a preview at
           # https://<owner>.github.io/<repo>/. Set repository variable CUSTOM_DOMAIN=true after the DNS switch.
           BASE_PATH: ${{ vars.CUSTOM_DOMAIN != 'true' && format('/{0}', github.event.repository.name) || '' }}

@@ -193,6 +193,7 @@ export function adminRoutes(r) {
 
   // ---- media (R2) ----
   A('POST', '/api/admin/media', 'products', async (req, env) => {
+    if (!env.MEDIA) throw bad('Photo storage is not switched on yet: enable R2 in the Cloudflare dashboard (R2 → Get started), then re-run the “Deploy API worker” action.');
     const fd = await req.formData();
     const file = fd.get('file');
     if (!file || typeof file === 'string') throw bad('No file');

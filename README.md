@@ -68,27 +68,36 @@ These are seeded so the site works end-to-end — **replace them in the dashboar
 5. Add the repository variable `CUSTOM_DOMAIN` = `true` (Settings → Secrets and variables → Actions → Variables), then click **Publish**. The site now builds for the domain root instead of the preview path.
    *(The build writes the `CNAME` file automatically.)*
 
-### 3. Cloudflare backend
-```bash
-cd worker && npm install
-npx wrangler login
-npx wrangler d1 create screation           # copy database_id into wrangler.toml
-npx wrangler r2 bucket create screation-media
-npx wrangler d1 migrations apply screation --remote
-# set GITHUB_REPO in wrangler.toml, then secrets:
-npx wrangler secret put SESSION_SECRET     # 40+ random chars
-npx wrangler secret put SETUP_TOKEN        # one-time, for creating the owner account
-npx wrangler secret put GITHUB_TOKEN       # fine-grained PAT on the repo: Contents R/W, Actions R
-npx wrangler deploy                        # creates api.screationindia.in automatically
-```
-Later deploys run automatically from GitHub Actions on every push to `worker/`.
+### 3. Cloudflare backend (automatic)
+1. Create a free Cloudflare account. Open **Workers & Pages** once, which sets up your `workers.dev` subdomain, and **R2 → Get started**, which turns on photo storage.
+2. Create an API token: **My Profile → API Tokens → Create Token**. Use the **"Edit Cloudflare Workers"** template, then **add the permission Account → D1 → Edit**. Copy the token, and also your **Account ID** (shown on the Workers & Pages page).
+3. In GitHub, go to **Settings → Secrets and variables → Actions → New repository secret** and add:
+   * `CLOUDFLARE_API_TOKEN`: the token.
+   * `CLOUDFLARE_ACCOUNT_ID`: the account ID.
+   * `ADMIN_SETUP_TOKEN`: any phrase you choose. You'll type it once to create the owner account.
+4. Go to **Actions → "Deploy API worker" → Run workflow**. It does the rest:
+   * creates the database and photo bucket;
+   * applies the migrations;
+   * deploys the API and generates the session secret;
+   * then rebuilds the site so it points at the API.
+5. Open `/admin/` on the site and create the owner account with your setup phrase.
+
+**Every other key goes in the same place**, as a GitHub secret, and is copied to Cloudflare on the next run of "Deploy API worker":
+* `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
+* `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_WEBHOOK_ID`
+* `DHL_API_KEY`, `DHL_API_SECRET`, `DHL_ACCOUNT_NUMBER`
+* `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
+* `RESEND_API_KEY`, `EMAIL_FROM`
+* `PUBLISH_TOKEN`: a fine-grained GitHub token with *Contents: read & write* and *Actions: read* on this repo. It powers the dashboard's Publish button; without it the site still rebuilds every 6 hours.
+
+Until the domain is on Cloudflare, the API runs at `https://screation-api.<your-subdomain>.workers.dev`. After the DNS switch, set the variable `CUSTOM_DOMAIN=true` and it moves to `api.screationindia.in`.
 
 ### 4. Google sign-in (customers and team)
 1. Go to console.cloud.google.com and create a project, e.g. "S Creation".
 2. Open **APIs & Services → OAuth consent screen**, choose *External*, and fill in the app name, support email and the authorized domain `screationindia.in`. Then **Publish app**.
 3. Open **Credentials → Create credentials → OAuth client ID** and choose *Web application*.
-   * Authorized redirect URI: `https://api.screationindia.in/api/auth/google/callback`
-4. Store the client ID and secret as Worker secrets: `npx wrangler secret put GOOGLE_CLIENT_ID` and `npx wrangler secret put GOOGLE_CLIENT_SECRET`.
+   * Authorized redirect URI: `https://api.screationindia.in/api/auth/google/callback`. While on the preview, also add `https://screation-api.<subdomain>.workers.dev/api/auth/google/callback`.
+4. Add the client ID and secret as GitHub secrets `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, then re-run "Deploy API worker".
 5. "Continue with Google" now shows on `/account/` and `/admin/`. Team members must be invited first, under Dashboard → Team, with the exact Google email.
 
 ### 5. Payments

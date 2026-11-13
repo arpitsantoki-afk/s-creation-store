@@ -14,6 +14,8 @@ accountRoutes(router);
 export default {
   async fetch(req, env, ctx) {
     const url = new URL(req.url);
+    // The API's public URL is wherever this request arrived (workers.dev now, api.screationindia.in later).
+    env = { ...env, API_URL: url.origin };
     let settings = null;
     try { settings = await getSettings(env); } catch { /* DB not migrated yet */ }
     const cors = corsHeaders(req, env, settings);
