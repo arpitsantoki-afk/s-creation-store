@@ -106,6 +106,39 @@ const faqLD = (items) => ({ '@context': 'https://schema.org', '@type': 'FAQPage'
 const absImg = (u) => (u.startsWith('http') ? u : site() + u);
 
 // ---------- pages ----------
+/** Hero: one slide per product line, photo + info card; swatches swap the colour in place. */
+function heroSlides(ctx) {
+  const { lang } = ctx;
+  const withPhotos = products.filter((p) => p.colors.some((c) => c.images?.length));
+  const total = `${products.length} STYLES · ${products.reduce((n, p) => n + p.colors.length, 0)} COLOURWAYS`;
+  if (!withPhotos.length) return `<div class="hero-art" aria-hidden="true">
+    <svg class="bigword" viewBox="0 0 1000 220" preserveAspectRatio="xMinYMin meet"><text x="0" y="190" textLength="1000" lengthAdjust="spacingAndGlyphs">${esc((products[0]?.line || 'S').toUpperCase())}</text></svg>
+    <div class="stack">${products.slice(0, 3).map((p) => productImage(p)).join('')}</div><div class="tag">${total}</div></div>`;
+  const slide = (p0, i) => {
+    const p = locProduct(p0, lang);
+    const cols = p.colors.filter((c) => c.images?.length);
+    const c = cols.find((x) => x.name === p.heroColor) || cols[0];
+    const href = ctx.href('/products/' + p.slug + '/');
+    return `<article class="hs${i === 0 ? ' on' : ''}" role="group" aria-roledescription="slide" aria-label="${i + 1} / ${withPhotos.length}: ${esc(p.name)}"${i ? ' aria-hidden="true"' : ''}>
+      <a class="hs-img" href="${href}" tabindex="-1">${productImage(p, c, '', { sizes: '(max-width: 900px) 100vw, 48vw', eager: i === 0 })}</a>
+      <div class="hs-card">
+        <div class="mono hs-code">${esc(p.code)} <span>/ ${String(withPhotos.length).padStart(2, '0')}</span></div>
+        <h2 class="hs-name">${esc((p.line || p.name).toUpperCase())}</h2>
+        <div class="hs-type">${esc(p.name.replace(p.line || '', '').trim() || p.type)}${p.gsm ? ` · ${p.gsm} GSM` : ''}</div>
+        <div class="hs-sw" role="group" aria-label="${t(lang, 'colour')}">${cols.slice(0, 9).map((x) => `<button type="button" class="sw" style="--c:${x.hex};--c2:${x.hex2 || x.hex}" data-img="${esc(x.images[0])}" data-name="${esc(x.name)}" aria-pressed="${x === c}" title="${esc(x.name)}"></button>`).join('')}${cols.length > 9 ? `<a class="more mono" href="${href}">+${cols.length - 9}</a>` : ''}</div>
+        <div class="hs-foot"><span class="mono hs-col">${esc(c.name)}</span><a class="btn sm accent" href="${href}">${t(lang, 'shop')} ${esc(p.line || p.name)} →</a></div>
+      </div>
+    </article>`;
+  };
+  return `<div class="hero-art hero-show" aria-roledescription="carousel" aria-label="${esc(S.store.name)}" data-hero>
+    ${withPhotos.map(slide).join('')}
+    <div class="tag">${total}</div>
+    <div class="hs-nav"><button type="button" class="hs-arrow" data-dir="-1" aria-label="Previous">←</button>
+      <div class="hs-bars">${withPhotos.map((p, i) => `<button type="button" data-go="${i}" aria-label="${esc(p.name)}"${i === 0 ? ' aria-current="true"' : ''}><i></i></button>`).join('')}</div>
+      <button type="button" class="hs-arrow" data-dir="1" aria-label="Next">→</button></div>
+  </div>`;
+}
+
 function home(ctx) {
   const { lang } = ctx;
   const minMoq = Math.min(...products.map((p) => p.moq || 50));
@@ -118,11 +151,7 @@ function home(ctx) {
     <p>${t(lang, 'heroText', { moq: minMoq })}</p>
     <div class="hero-cta"><a class="btn accent" href="${ctx.href('/products/')}">${t(lang, 'shopCollection')} →</a><a class="btn ghost" href="#how">${t(lang, 'howItWorks')}</a></div>
   </div>
-  <div class="hero-art" aria-hidden="true">
-    <svg class="bigword" viewBox="0 0 1000 220" preserveAspectRatio="xMinYMin meet"><text x="0" y="190" textLength="1000" lengthAdjust="spacingAndGlyphs">${esc((products[0]?.line || 'S').toUpperCase())}</text></svg>
-    <div class="stack${heroP.every((p) => (p.colors.find((c) => c.name === p.heroColor) || p.colors[0])?.images?.length) ? ' photos' : ''}">${heroP.map((p, i) => `<a href="${ctx.href('/products/' + p.slug + '/')}" aria-label="${esc(p.name)}">${productImage(p, null, '', { sizes: '(max-width: 980px) 34vw, 16vw', eager: i === 0 })}</a>`).join('')}</div>
-    <div class="tag">${products.length} STYLES · ${products.reduce((n, p) => n + p.colors.length, 0)} COLOURWAYS</div>
-  </div>
+  ${heroSlides(ctx)}
 </div></section>
 <div class="strip wrap" style="padding:0">
   <div><b>${t(lang, 'why1')}</b><span>${t(lang, 'why1t')}</span></div>

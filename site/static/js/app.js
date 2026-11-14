@@ -351,8 +351,53 @@ function initContact() {
   });
 }
 
+// ---------------- home hero slideshow ----------------
+function initHero() {
+  const root = $('[data-hero]'); if (!root) return;
+  const slides = $$('.hs', root), bars = $$('[data-go]', root);
+  if (slides.length < 2) { $('.hs-nav', root)?.remove(); }
+  const DUR = 6000, still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let cur = 0, timer = null, paused = false, stopped = still;
+  root.style.setProperty('--dur', DUR + 'ms');
+  const show = (n) => {
+    cur = (n + slides.length) % slides.length;
+    slides.forEach((s, i) => { s.classList.toggle('on', i === cur); s.toggleAttribute('aria-hidden', i !== cur); });
+    bars.forEach((b, i) => { b.toggleAttribute('aria-current', i === cur); b.classList.remove('run'); });
+    // warm the next slide's photo
+    const nx = slides[(cur + 1) % slides.length]?.querySelector('img'); if (nx && nx.loading === 'lazy') nx.loading = 'eager';
+    schedule();
+  };
+  const schedule = () => {
+    clearTimeout(timer);
+    if (stopped || paused || slides.length < 2) return;
+    const b = bars[cur]; if (b) { void b.offsetWidth; b.classList.add('run'); }
+    timer = setTimeout(() => show(cur + 1), DUR);
+  };
+  root.addEventListener('click', (e) => {
+    const go = e.target.closest('[data-go]'), dir = e.target.closest('[data-dir]'), sw = e.target.closest('.hs-sw .sw');
+    if (go) { stopped = true; show(+go.dataset.go); }
+    else if (dir) { stopped = true; show(cur + +dir.dataset.dir); }
+    else if (sw) {
+      stopped = true; clearTimeout(timer); bars.forEach((b) => b.classList.remove('run'));
+      const s = sw.closest('.hs'), box = $('.hs-img', s);
+      box.innerHTML = imgTag(sw.dataset.img, { alt: `${$('.hs-name', s).textContent} – ${sw.dataset.name}`, sizes: '(max-width: 900px) 100vw, 48vw', eager: true });
+      $$('.hs-sw .sw', s).forEach((x) => x.setAttribute('aria-pressed', x === sw));
+      $('.hs-col', s).textContent = sw.dataset.name;
+    }
+  });
+  root.addEventListener('pointerenter', () => { paused = true; clearTimeout(timer); bars[cur]?.classList.add('hold'); });
+  root.addEventListener('pointerleave', () => { paused = false; bars[cur]?.classList.remove('hold'); schedule(); });
+  root.addEventListener('keydown', (e) => { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { stopped = true; show(cur + (e.key === 'ArrowRight' ? 1 : -1)); } });
+  document.addEventListener('visibilitychange', () => (document.hidden ? clearTimeout(timer) : schedule()));
+  let x0 = null;
+  root.addEventListener('touchstart', (e) => { x0 = e.touches[0].clientX; }, { passive: true });
+  root.addEventListener('touchend', (e) => { if (x0 == null) return; const dx = e.changedTouches[0].clientX - x0; x0 = null; if (Math.abs(dx) > 40) { stopped = true; show(cur + (dx < 0 ? 1 : -1)); } });
+  show(0);
+}
+
 // ---------------- boot ----------------
 initHeader();
+initHero();
 paintAccount();
 await initCurrency();
 applyPrices();
