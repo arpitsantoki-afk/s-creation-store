@@ -17,8 +17,31 @@ export async function getSettings(env) {
   if (!row) return structuredClone(defaultSettings);
   const saved = JSON.parse(row.value);
   if (Array.isArray(saved.categories) && saved.categories.length && !saved.categories.some((c) => 'parent' in c)) await migrateTaxonomy(env, saved);
+  await importNewStarters(env, saved);
   // Saved settings are merged over defaults, so new setting keys added in code appear automatically.
   return deepMerge(defaultSettings, saved);
+}
+
+// Products added to content/products.json after launch are imported once (never re-added if deleted later),
+// together with any category they need.
+const LEGACY_STARTERS = ['sc-01', 'sc-02', 'sc-03', 'sc-04', 'sc-05', 'sc-06'];
+async function importNewStarters(env, saved) {
+  const seen = new Set(saved.starterSeen || LEGACY_STARTERS);
+  const fresh = starterProducts.filter((p) => !seen.has(p.id));
+  if (!fresh.length) return;
+  saved.categories = Array.isArray(saved.categories) ? saved.categories : structuredClone(defaultSettings.categories);
+  for (const p of fresh) {
+    if (!(await getProduct(env, p.id))) await saveProduct(env, p);
+    for (const slug of [p.category, ...(p.categories || [])]) {
+      const d = defaultSettings.categories.find((c) => c.slug === slug);
+      if (!d || saved.categories.some((c) => c.slug === slug)) continue;
+      if (d.parent && !saved.categories.some((c) => c.slug === d.parent)) saved.categories.push(defaultSettings.categories.find((c) => c.slug === d.parent));
+      const at = saved.categories.map((c) => c.parent || c.slug).lastIndexOf(d.parent || d.slug);
+      saved.categories.splice(at + 1, 0, d);
+    }
+  }
+  saved.starterSeen = starterProducts.map((p) => p.id);
+  await saveSettings(env, saved);
 }
 
 // One-time upgrade from flat categories (polos/performance/tees) to the department tree.

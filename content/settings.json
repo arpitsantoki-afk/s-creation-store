@@ -597,6 +597,13 @@
       "google": "212"
     },
     {
+      "slug": "womens-tees",
+      "name": "T-shirts",
+      "parent": "women",
+      "intro": "",
+      "google": "212"
+    },
+    {
       "slug": "womens-innerwear",
       "name": "Innerwear",
       "parent": "women",
