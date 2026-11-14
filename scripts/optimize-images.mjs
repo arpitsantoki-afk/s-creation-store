@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Bulk image pipeline (same output as the dashboard uploader).
 //   node scripts/optimize-images.mjs <folder-of-exported-images>
-// Input file names: <Line>-<Colour>-<view>.<png|jpg|webp>, e.g. Site-Aurum-MintBlue-2.png or Aurum-Mint Blue-2.jpg
+// Input file names: "<Line> upload – <Colour> (<view>).png" (canvas export) or <Line>-<Colour>-<view>.<png|jpg|webp>
 // Output: site/static/uploads/products/<product-slug>/<product>-<colour>-<view>-<W>x<H>.webp (400/800/1200/1600 px)
 //         content/photos.json  { "<product id>": { "<Colour name>": ["/assets/uploads/…-1200x1500.webp", …] } }
 // Then: Dashboard → Products → "Attach repo photos" links them to the products.
@@ -28,7 +28,8 @@ let n = 0, bytesIn = 0, bytesOut = 0;
 const files = (await fs.readdir(inDir, { recursive: true })).filter((f) => /\.(png|jpe?g|webp|avif|tiff?)$/i.test(f)).sort();
 for (const rel of files) {
   const stem = path.basename(rel).replace(/\.[^.]+$/, '').replace(/^(site|web)[-_ ]/i, '');
-  const m = /^([^-_ ]+)[-_ ]+(.+?)[-_ ]+(\d+)$/.exec(stem) || /^([^-_ ]+)[-_ ]+(.+)$/.exec(stem);
+  // "Aurum upload – Mint Blue (2)" (canvas export) or "Aurum-MintBlue-2"
+  const m = /^(\S+)\s+upload\s+[–—-]\s+(.+?)\s*\((\d+)\)$/i.exec(stem) || /^([^-_ ]+)[-_ ]+(.+?)[-_ ]+(\d+)$/.exec(stem) || /^([^-_ ]+)[-_ ]+(.+)$/.exec(stem);
   const p = m && byLine[key(m[1])];
   const col = p && p.colors.find((c) => key(c.name) === key(m[2]));
   if (!col) { console.warn(`skip ${rel}: can't match product/colour`); continue; }

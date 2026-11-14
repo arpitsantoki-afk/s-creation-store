@@ -377,3 +377,6 @@ html, body { overflow-x: clip; }
 @media (min-width: 901px) {
   .hero .wrap { max-width: none; padding-right: 0; padding-left: max(var(--pad), calc((100vw - var(--wrap)) / 2 + var(--pad))); }
 }
+
+/* Product photos sit on #EEEDEA (= --stone-2); multiply melts their backdrop into any tinted panel. */
+.hero-art .stack img, .gallery .main img, .card .media img { mix-blend-mode: multiply; }

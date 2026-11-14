@@ -64,6 +64,9 @@ const products = [...rawProducts].sort((a, b) => (a.sort ?? 99) - (b.sort ?? 99)
 // Photos stored in the repo (site/static/uploads → /assets/uploads) always point at the current site URL,
 // so they keep working after the switch from the github.io preview to screationindia.in.
 const upl = (u) => { const i = String(u).indexOf('/assets/uploads/'); return i < 0 ? u : S.store.siteUrl.replace(/\/$/, '') + u.slice(i); };
+// Photos optimised into the repo (scripts/optimize-images.mjs → content/photos.json) fill any colour that has none yet.
+const repoPhotos = await readJSON('content/photos.json').catch(() => ({}));
+for (const p of products) for (const c of p.colors || []) if (!c.images?.length && repoPhotos[p.id]?.[c.name]?.length) c.images = [...repoPhotos[p.id][c.name]];
 for (const p of products) for (const c of p.colors || []) if (c.images) c.images = c.images.map(upl);
 const langs = S.languages.enabled.length ? S.languages.enabled : ['en'];
 const DEF = S.languages.default || 'en';
