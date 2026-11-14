@@ -120,7 +120,7 @@ function home(ctx) {
   </div>
   <div class="hero-art" aria-hidden="true">
     <svg class="bigword" viewBox="0 0 1000 220" preserveAspectRatio="xMinYMin meet"><text x="0" y="190" textLength="1000" lengthAdjust="spacingAndGlyphs">${esc((products[0]?.line || 'S').toUpperCase())}</text></svg>
-    <div class="stack">${heroP.map((p, i) => productImage(p, null, '', { sizes: '(max-width: 980px) 60vw, 30vw', eager: i === 0 })).join('')}</div>
+    <div class="stack${heroP.every((p) => (p.colors.find((c) => c.name === p.heroColor) || p.colors[0])?.images?.length) ? ' photos' : ''}">${heroP.map((p, i) => `<a href="${ctx.href('/products/' + p.slug + '/')}" aria-label="${esc(p.name)}">${productImage(p, null, '', { sizes: '(max-width: 980px) 34vw, 16vw', eager: i === 0 })}</a>`).join('')}</div>
     <div class="tag">${products.length} STYLES · ${products.reduce((n, p) => n + p.colors.length, 0)} COLOURWAYS</div>
   </div>
 </div></section>

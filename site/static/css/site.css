@@ -379,4 +379,12 @@ html, body { overflow-x: clip; }
 }
 
 /* Product photos sit on #EEEDEA (= --stone-2); multiply melts their backdrop into any tinted panel. */
-.hero-art .stack img, .gallery .main img, .card .media img { mix-blend-mode: multiply; }
+.gallery .main:has(img[srcset]) { aspect-ratio: 4/5; }
+.gallery .main img[srcset], .card .media img[srcset] { inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 18%; }
+.gallery .main:has(img[srcset]) .word, .card .media:has(img[srcset]) .word { display: none; }
+.card:hover .media img[srcset] { transform: scale(1.03); }
+/* Hero with real photos: an editorial triptych, no overlap. */
+.hero-art .stack.photos { inset: 20% 0 0; grid-template-columns: repeat(3, 1fr); align-items: stretch; gap: 1px; background: var(--ink); }
+.hero-art .stack.photos > * { width: auto; margin: 0; transform: none; overflow: hidden; display: block; background: var(--stone-2); }
+.hero-art .stack.photos img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 20%; transition: transform .6s cubic-bezier(.2,.7,.2,1); }
+.hero-art .stack.photos > *:hover img { transform: scale(1.04); }
