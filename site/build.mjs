@@ -12,9 +12,10 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { layout, productCard, productImage, sizeTable, faqBlock, crumbs, locProduct, locPage, fmtBase, md, esc, plain, t } from './lib/templates.js';
+import { layout, liveTree, waLink, productCard, productImage, sizeTable, faqBlock, crumbs, locProduct, locPage, fmtBase, md, esc, plain, t } from './lib/templates.js';
 import { garmentSVG, xml } from './lib/util.js';
-import { convert } from '../shared/pricing.js';
+import { convert, samplePrice } from '../shared/pricing.js';
+import { catTree, productCats, catTrail, catName, catBySlug } from '../shared/catalog.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.resolve(ROOT, process.env.OUT || 'dist');
@@ -159,10 +160,12 @@ function home(ctx) {
   <div><b>${t(lang, 'why3')}</b><span>${t(lang, 'why3t')}</span></div>
   <div><b>${t(lang, 'why4')}</b><span>${t(lang, 'why4t')}</span></div>
 </div>
+${deptTiles(ctx)}
 <section class="section"><div class="wrap">
   <div class="sec-head"><h2>${t(lang, 'allProducts')}</h2><a class="link mono" href="${ctx.href('/products/')}">${t(lang, 'shop')} →</a></div>
   <div class="grid">${products.map((p) => productCard(ctx, p)).join('')}</div>
 </div></section>
+${sampleSection(ctx)}
 <section class="section alt" id="how"><div class="wrap">
   <div class="sec-head"><h2>${t(lang, 'howItWorks')}</h2></div>
   <ol class="steps">${[1, 2, 3, 4].map((n) => `<li><div class="n">0${n}</div><h3>${t(lang, 'step' + n)}</h3><p class="muted">${t(lang, 'step' + n + 't')}</p></li>`).join('')}</ol>
@@ -177,24 +180,109 @@ ${ctaBand(ctx)}`;
   return layout(ctx, { title: S.seo.homeTitle, description: S.seo.homeDescription, path: '/', body, jsonld: ld, pageClass: 'home' });
 }
 
-const ctaBand = (ctx) => `<section class="cta-band"><div class="wrap"><div><h2>${t(ctx.lang, 'sample')}</h2><p>${t(ctx.lang, 'sampleText')}</p></div><a class="btn" href="${ctx.href('/contact/')}">${t(ctx.lang, 'getInTouch')} →</a></div></section>`;
+const samplesOn = () => S.samples?.enabled !== false;
+const ctaBand = (ctx) => `<section class="cta-band"><div class="wrap"><div><h2>${t(ctx.lang, 'sample')}</h2><p>${t(ctx.lang, 'sampleText')}</p></div>
+  <div class="row" style="gap:10px;flex-wrap:wrap">${samplesOn() ? `<a class="btn" href="${ctx.href('/sample-kit/')}">${t(ctx.lang, 'buildKit')} →</a>` : ''}${S.store.whatsapp ? `<a class="btn ghost inv" href="${esc(waLink(S))}" target="_blank" rel="noopener">WhatsApp ↗</a>` : `<a class="btn ghost inv" href="${ctx.href('/contact/')}">${t(ctx.lang, 'getInTouch')} →</a>`}</div></div></section>`;
+
+/** Products in a category (its sub-categories and extra memberships included). */
+const inCategory = (slug) => products.filter((p) => productCats(p, S.categories).has(slug));
+const catUrl = (ctx, c) => ctx.href('/collections/' + c.slug + '/');
+
+function deptTiles(ctx) {
+  const { lang } = ctx;
+  const tree = liveTree(ctx);
+  if (tree.length < 2) return '';
+  return `<section class="section depts"><div class="wrap">
+  <div class="sec-head"><h2>${t(lang, 'shopBy')}</h2></div>
+  <div class="dgrid">${tree.map((d) => {
+    const list = inCategory(d.slug), p = list[0];
+    const c = p && (p.colors.find((x) => x.name === p.heroColor && x.images?.length) || p.colors.find((x) => x.images?.length));
+    return `<a class="dtile" href="${catUrl(ctx, d)}"><div class="dimg">${c ? productImage(p, c, '', { sizes: '(max-width: 700px) 50vw, 25vw' }) : ''}</div>
+      <div class="dtxt"><h3>${esc(catName(d, lang))}</h3><span class="mono muted">${list.length} ${t(lang, list.length === 1 ? 'style' : 'styles')}${d.children.length ? ' · ' + d.children.map((x) => esc(catName(x, lang))).join(' · ') : ''}</span></div></a>`;
+  }).join('')}</div></div></section>`;
+}
+
+function sampleSection(ctx) {
+  if (!samplesOn()) return '';
+  const { lang } = ctx;
+  const sm = S.samples || {}, n = sm.maxPieces || 5;
+  const minMoq = Math.min(...products.map((p) => p.moq || 50));
+  const from = Math.min(...products.map((p) => samplePrice(p, S)));
+  return `<section class="section samplekit" id="sample-kit"><div class="wrap">
+  <div class="sk-grid">
+    <div class="sk-copy"><div class="kicker mono">${t(lang, 'sampleKit')}</div>
+      <h2>${esc(sm.title || t(lang, 'sampleKitTitle'))}</h2>
+      <p>${esc(sm.text || t(lang, 'sampleHint', { n }))}</p>
+      <div class="sk-price"><span class="mono muted">${t(lang, 'from')}</span> <b><span data-price="${from}">${fmtBase(from, S)}</span></b> <span class="muted">${t(lang, 'samplePerPc')}</span></div>
+      <div class="row" style="gap:10px;flex-wrap:wrap"><a class="btn accent" href="${ctx.href('/sample-kit/')}">${t(lang, 'buildKit')} →</a>${S.store.whatsapp ? `<a class="btn ghost" href="${esc(waLink(S, t(lang, 'sampleKitTitle')))}" target="_blank" rel="noopener">${t(lang, 'askWa')} ↗</a>` : ''}</div></div>
+    <ol class="sk-steps">
+      <li><span class="n mono">01</span><div><b>${t(lang, 'sampleStep1', { n })}</b><p class="muted">${t(lang, 'sampleStep1t')}</p></div></li>
+      <li><span class="n mono">02</span><div><b>${t(lang, 'sampleStep2')}</b><p class="muted">${t(lang, 'sampleStep2t')}${sm.dispatchDays ? ' ' + t(lang, 'dispatch', { d: esc(sm.dispatchDays) }) + '.' : ''}</p></div></li>
+      <li><span class="n mono">03</span><div><b>${t(lang, 'sampleStep3')}</b><p class="muted">${t(lang, 'sampleStep3t', { moq: minMoq })}</p></div></li>
+    </ol>
+  </div></div></section>`;
+}
+
+function sampleKitPage(ctx) {
+  const { lang } = ctx;
+  const sm = S.samples || {}, n = sm.maxPieces || 5;
+  const pth = '/sample-kit/';
+  const title = sm.title || t(lang, 'sampleKitTitle');
+  const rows = products.map((p0) => {
+    const p = locProduct(p0, lang);
+    const cols = p.colors;
+    const c = cols.find((x) => x.name === p.heroColor) || cols[0];
+    const sp = samplePrice(p0, S);
+    return `<article class="skrow" data-skp="${esc(p.id)}">
+      <a class="skimg" href="${ctx.href('/products/' + p.slug + '/')}" data-skimg>${productImage(p, c, '', { sizes: '120px' })}</a>
+      <div class="skinfo"><div class="mono muted">${esc(p.code)}</div><h3><a href="${ctx.href('/products/' + p.slug + '/')}">${esc(p.name)}</a></h3>
+        <div class="muted" style="font-size:13px">${esc([p.fabric, p.gsm ? p.gsm + ' GSM' : ''].filter(Boolean).join(' · '))}</div>
+        <div class="skprice"><b><span data-price="${sp}">${fmtBase(sp, S)}</span></b> <small class="muted">${t(lang, 'samplePerPc')}</small></div></div>
+      <div class="skpick">
+        <label class="f">${t(lang, 'colour')}<select class="i" data-skc>${cols.map((x) => `<option value="${esc(x.name)}" data-img="${esc(x.images?.[0] || '')}"${x === c ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</select></label>
+        <label class="f">${t(lang, 'size')}<select class="i" data-sks>${p.sizes.map((z) => `<option>${esc(z)}</option>`).join('')}</select></label>
+        <label class="f">${t(lang, 'qty')}<select class="i" data-skq>${Array.from({ length: n }, (_, i) => `<option>${i + 1}</option>`).join('')}</select></label>
+        <button type="button" class="btn sm accent" data-skadd>${t(lang, 'addSample')}</button>
+      </div></article>`;
+  }).join('');
+  const body = `${crumbs(ctx, [{ name: t(lang, 'home'), href: ctx.href('/') }, { name: t(lang, 'sampleKit') }])}
+<section class="wrap" style="padding-bottom:80px" data-samplekit data-max="${n}">
+  <div class="sec-head"><div><h1 style="margin:0 0 8px">${esc(title)}</h1><p class="muted" style="max-width:60ch;margin:0">${esc(sm.text || t(lang, 'sampleHint', { n }))}</p></div></div>
+  <div class="skwrap"><div class="sklist">${rows}</div>
+    <aside class="summary skbox"><h2 style="font-size:20px">${t(lang, 'yourKit')}</h2>
+      <div class="kitbar"><i data-kitbar></i></div><p class="mono" data-kitcount>${t(lang, 'kitPieces', { k: 0, n })}</p>
+      <div data-kitlist class="mixlist"></div>
+      <a class="btn accent block" href="${ctx.href('/cart/')}">${t(lang, 'cart')} →</a>
+      ${sm.dispatchDays ? `<p class="muted" style="font-size:13px;margin-top:12px">${t(lang, 'dispatch', { d: esc(sm.dispatchDays) })}</p>` : ''}</aside></div>
+</section>${ctaBand(ctx)}`;
+  return layout(ctx, { title: title + S.seo.titleSuffix, description: `${title}: ${esc(sm.text || '')}`.slice(0, 160), path: pth, body, waText: title,
+    jsonld: [breadcrumbLD([{ name: t(lang, 'home'), url: ctx.url('/') }, { name: t(lang, 'sampleKit'), url: ctx.url(pth) }])] });
+}
 
 function listing(ctx, cat = null) {
   const { lang } = ctx;
-  const list = cat ? products.filter((p) => p.category === cat.slug) : products;
-  const title = cat ? (cat.i18n?.[lang] || cat.name) : t(lang, 'allProducts');
+  const list = cat ? inCategory(cat.slug) : products;
+  const trail = cat ? catTrail(cat.slug, S.categories) : [];
+  const dept = trail[0];
+  const title = cat ? (dept && dept !== cat ? `${catName(dept, lang)} › ${catName(cat, lang)}` : catName(cat, lang)) : t(lang, 'allProducts');
+  const h1 = cat ? (dept && dept !== cat ? `${catName(dept, lang)} ${catName(cat, lang)}` : catName(cat, lang)) : t(lang, 'allProducts');
   const pth = cat ? `/collections/${cat.slug}/` : '/products/';
-  const body = `${crumbs(ctx, [{ name: t(lang, 'home'), href: ctx.href('/') }, { name: title }])}
+  const tree = liveTree(ctx);
+  const subs = dept ? (tree.find((d) => d.slug === dept.slug)?.children || []) : [];
+  const crumbTrail = [{ name: t(lang, 'home'), href: ctx.href('/'), url: ctx.url('/') }, ...(cat ? [] : [{ name: title }]),
+    ...trail.map((c, i) => ({ name: catName(c, lang), ...(i < trail.length - 1 ? { href: catUrl(ctx, c) } : {}), url: ctx.url('/collections/' + c.slug + '/') }))];
+  const body = `${crumbs(ctx, crumbTrail)}
 <section class="wrap" style="padding-bottom:80px">
-  <div class="sec-head"><h1 style="margin:0">${esc(title)}</h1>
+  <div class="sec-head"><div><h1 style="margin:0">${esc(h1)}</h1>${cat?.intro ? `<p class="muted" style="max-width:62ch;margin:10px 0 0">${esc(cat.intro)}</p>` : ''}</div>
     <div class="filters"><a class="pill" href="${ctx.href('/products/')}" aria-current="${!cat}">${t(lang, 'allProducts')}</a>
-    ${(S.categories || []).map((c) => `<a class="pill" href="${ctx.href('/collections/' + c.slug + '/')}" aria-current="${cat?.slug === c.slug}">${esc(c.i18n?.[lang] || c.name)}</a>`).join('')}</div></div>
+    ${tree.map((d) => `<a class="pill" href="${catUrl(ctx, d)}" aria-current="${dept?.slug === d.slug}">${esc(catName(d, lang))}</a>`).join('')}</div></div>
+  ${subs.length > 1 ? `<div class="filters sub"><a class="pill" href="${catUrl(ctx, dept)}" aria-current="${cat?.slug === dept.slug}">${t(lang, 'allIn', { name: catName(dept, lang) })}</a>${subs.map((c) => `<a class="pill" href="${catUrl(ctx, c)}" aria-current="${cat?.slug === c.slug}">${esc(catName(c, lang))}</a>`).join('')}</div>` : ''}
   <div class="grid">${list.map((p) => productCard(ctx, p)).join('')}</div>
 </section>${ctaBand(ctx)}`;
-  const desc = cat ? `${title} by ${S.store.name}: ${list.map((p) => p.name).join(', ')}. Order from ${Math.min(...list.map((p) => p.moq))} pcs, mix sizes and colours, worldwide shipping.` : S.seo.homeDescription;
-  return layout(ctx, { title: title + S.seo.titleSuffix, description: desc, path: pth, body,
-    jsonld: [breadcrumbLD([{ name: t(lang, 'home'), url: ctx.url('/') }, { name: title, url: ctx.url(pth) }]),
-      { '@context': 'https://schema.org', '@type': 'CollectionPage', name: title, url: origin() + ctx.url(pth), mainEntity: { '@type': 'ItemList', itemListElement: list.map((p, i) => ({ '@type': 'ListItem', position: i + 1, url: origin() + ctx.url('/products/' + p.slug + '/'), name: p.name })) } }] });
+  const desc = cat ? (cat.intro || `${h1} by ${S.store.name}: ${list.map((p) => p.name).join(', ')}.`) + ` Order from ${Math.min(...list.map((p) => p.moq))} pcs, mix sizes and colours, worldwide shipping.` : S.seo.homeDescription;
+  return layout(ctx, { title: title + S.seo.titleSuffix, description: desc.slice(0, 300), path: pth, body,
+    jsonld: [breadcrumbLD(crumbTrail.filter((c) => c.url).map((c) => ({ name: c.name, url: c.url }))),
+      { '@context': 'https://schema.org', '@type': 'CollectionPage', name: h1, url: origin() + ctx.url(pth), mainEntity: { '@type': 'ItemList', itemListElement: list.map((p, i) => ({ '@type': 'ListItem', position: i + 1, url: origin() + ctx.url('/products/' + p.slug + '/'), name: p.name })) } }] });
 }
 
 function productPage(ctx, p0) {
@@ -213,7 +301,10 @@ function productPage(ctx, p0) {
   const sections = [['overview', t(lang, 'overview')], ['use-cases', t(lang, 'useCases')], ['specs', t(lang, 'specifications')],
     ['sizes', t(lang, 'sizeGuide')], ['care', t(lang, 'care')], ['faq', t(lang, 'faqs')]];
 
-  const body = `${crumbs(ctx, [{ name: t(lang, 'home'), href: ctx.href('/') }, { name: t(lang, 'products'), href: ctx.href('/products/') }, { name: p.name }])}
+  const ptrail = catTrail(p.category, S.categories).map((c) => ({ name: catName(c, lang), href: catUrl(ctx, c), url: ctx.url('/collections/' + c.slug + '/') }));
+  const pcrumbs = [{ name: t(lang, 'home'), href: ctx.href('/'), url: ctx.url('/') }, ...(ptrail.length ? ptrail : [{ name: t(lang, 'products'), href: ctx.href('/products/'), url: ctx.url('/products/') }]), { name: p.name, url: ctx.url(pth) }];
+  const sp = samplePrice(p0, S), smax = S.samples?.maxPieces || 5;
+  const body = `${crumbs(ctx, pcrumbs.map(({ name, href }, i) => (i === pcrumbs.length - 1 ? { name } : { name, href })))}
 <div class="pdp" data-product>
   <div class="gallery">
     <div class="main"><div class="word" aria-hidden="true">${esc((p.line || p.name).toUpperCase())}</div>
@@ -244,6 +335,14 @@ function productPage(ctx, p0) {
     <div class="mixlist" data-mix></div>
     <div class="subtotal"><span>${t(lang, 'subtotal')}</span><b data-subtotal>—</b></div>
     <button class="btn accent block" data-add disabled>${t(lang, 'addToCart')}</button>
+    ${samplesOn() ? `<div class="samplebox" data-sample>
+      <div class="sb-head"><b>${t(lang, 'orderSample', { moq: p.moq })}</b><span><span data-price="${sp}">${fmtBase(sp, S)}</span> <small class="muted">${t(lang, 'samplePerPc')}</small></span></div>
+      <p class="muted">${t(lang, 'sampleHint', { n: smax })}</p>
+      <div class="sb-pick"><span class="mono sb-col" data-sbcol>${esc(hero?.name || '')}</span>
+        <label class="sr-only" for="sbsize">${t(lang, 'size')}</label><select class="i" id="sbsize" data-sbsize>${p.sizes.map((z) => `<option>${esc(z)}</option>`).join('')}</select>
+        <button type="button" class="btn sm" data-sbadd>${t(lang, 'addSample')}</button></div>
+      <a class="link mono" href="${ctx.href('/sample-kit/')}" style="font-size:12px">${t(lang, 'buildKit')} →</a></div>` : ''}
+    ${S.store.whatsapp ? `<a class="wa-inline" href="${esc(waLink(S, `${t(lang, 'waProduct')} ${p.name} (${p.code}) — ${origin() + ctx.url(pth)}`))}" target="_blank" rel="noopener">${t(lang, 'askWa')} ↗</a>` : ''}
     <div class="trust"><div>${t(lang, 'why1')}</div><div>${t(lang, 'why3')}</div><div>${t(lang, 'leadTime')}: ${esc(p.leadTime || '')}</div><div>${t(lang, 'why4')}</div></div>
   </div></div>
 </div>
@@ -273,7 +372,7 @@ function productPage(ctx, p0) {
   <section class="pblock" id="faq"><h2>${t(lang, 'faqs')}</h2><div>${faqBlock(faqs)}</div></section>
 </div>
 <section class="section"><div class="wrap"><div class="sec-head"><h2>${t(lang, 'related')}</h2></div>
-  <div class="grid">${products.filter((x) => x.id !== p.id).sort((a, b) => (b.category === p.category) - (a.category === p.category)).slice(0, 3).map((x) => productCard(ctx, x)).join('')}</div></div></section>
+  <div class="grid">${products.filter((x) => x.id !== p.id).sort((a, b) => (b.category === p.category) - (a.category === p.category) || (productCats(b, S.categories).has(catTrail(p.category, S.categories)[0]?.slug) - productCats(a, S.categories).has(catTrail(p.category, S.categories)[0]?.slug))).slice(0, 3).map((x) => productCard(ctx, x)).join('')}</div></div></section>
 <script type="application/json" id="pdata">${JSON.stringify(pdata).replace(/</g, '\\u003c')}</script>`;
 
   const images = allImgs.length ? allImgs.map(absImg) : [site() + `/assets/img/p/${p.slug}.svg`];
@@ -297,9 +396,9 @@ function productPage(ctx, p0) {
     hasVariant: p.colors.map((c) => ({ '@type': 'Product', name: `${p.name} – ${c.name}`, sku: `${p.code}-${c.name.replace(/[^A-Za-z0-9]+/g, '').toUpperCase()}`, color: c.name, image: c.images?.length ? c.images.map(absImg) : images[0], offers: offerFor(S.baseCurrency) })),
     offers: { '@type': 'AggregateOffer', priceCurrency: S.baseCurrency, lowPrice: minPrice, highPrice: p.price, offerCount: p.colors.length * p.sizes.length, offers: S.currencies.filter((c) => c.enabled).map((c) => offerFor(c.code)).filter(Boolean) },
   };
-  const ld = [productLD, breadcrumbLD([{ name: t(lang, 'home'), url: ctx.url('/') }, { name: t(lang, 'products'), url: ctx.url('/products/') }, { name: p.name, url: ctx.url(pth) }]), faqLD(faqs)];
+  const ld = [productLD, breadcrumbLD(pcrumbs.map(({ name, url }) => ({ name, url }))), faqLD(faqs)];
   const avail = langs.filter((l) => l === DEF || p0.i18n?.[l]);
-  return layout(ctx, {
+  return layout(ctx, { waText: `${t(lang, 'waProduct')} ${p.name} (${p.code})`,
     title: p.seo?.title || p.name + S.seo.titleSuffix, description: p.seo?.description || p.short, path: pth, body, jsonld: ld, pageClass: 'page-pdp',
     alternates: avail, canonical: p._translated ? null : origin() + ctx.url(pth, DEF), ogImage: allImgs[0] || `/assets/img/p/${p.slug}.svg`,
   });
@@ -392,7 +491,7 @@ function catalogJSON() {
     store: { name: S.store.name, url: site(), email: S.store.email, baseCurrency: S.baseCurrency },
     generated: new Date().toISOString(),
     products: products.map((p) => ({
-      id: p.id, code: p.code, slug: p.slug, url: origin() + BASE + '/products/' + p.slug + '/', name: p.name, line: p.line, type: p.type, category: p.category,
+      id: p.id, code: p.code, slug: p.slug, url: origin() + BASE + '/products/' + p.slug + '/', name: p.name, line: p.line, type: p.type, category: p.category, categories: [...productCats(p, S.categories)], samplePrice: samplePrice(p, S),
       short: p.short, fabric: p.fabric, gsm: p.gsm, moq: p.moq, price: p.price, tiers: p.tiers || [], weightG: p.weightG,
       sizes: p.sizes, colors: p.colors.map((c) => ({ name: c.name, hex: c.hex, hex2: c.hex2 || null, image: c.images?.[0] || null })),
       specs: p.specs, leadTime: p.leadTime, i18n: Object.fromEntries(Object.entries(p.i18n || {}).map(([l, v]) => [l, { name: v.name }])),
@@ -413,7 +512,7 @@ function merchantFeed(cur) {
 <g:image_link>${xml(c.images?.[0] ? absImg(c.images[0]) : site() + `/assets/img/p/${p.slug}.svg`)}</g:image_link>
 <g:availability>in_stock</g:availability><g:price>${price} ${cur}</g:price><g:condition>new</g:condition><g:brand>${xml(S.store.name)}</g:brand>
 <g:color>${xml(c.name)}</g:color><g:material>${xml(p.fabric)}</g:material><g:gender>${/women/i.test(p.gender) ? 'female' : /men/i.test(p.gender) ? 'male' : 'unisex'}</g:gender><g:age_group>adult</g:age_group>
-<g:size>${xml(p.sizes.join('/'))}</g:size><g:google_product_category>212</g:google_product_category><g:identifier_exists>no</g:identifier_exists>
+<g:size>${xml(p.sizes.join('/'))}</g:size><g:google_product_category>${xml(catTrail(p.category, S.categories).reverse().find((c) => c.google)?.google || '212')}</g:google_product_category><g:product_type>${xml(catTrail(p.category, S.categories).map((c) => c.name).join(' > ') || p.type)}</g:product_type><g:identifier_exists>no</g:identifier_exists>
 <g:min_handling_time>7</g:min_handling_time><g:max_handling_time>10</g:max_handling_time>
 <g:product_detail><g:attribute_name>Minimum order</g:attribute_name><g:attribute_value>${p.moq} pcs</g:attribute_value></g:product_detail>
 </item>`);
@@ -440,7 +539,8 @@ for (const lang of langs) {
   const ctx = makeCtx(lang);
   await write(outPath('/', lang), home(ctx));
   await write(outPath('/products/', lang), listing(ctx));
-  for (const c of S.categories || []) if (products.some((p) => p.category === c.slug)) await write(outPath(`/collections/${c.slug}/`, lang), listing(ctx, c));
+  for (const c of S.categories || []) if (inCategory(c.slug).length) await write(outPath(`/collections/${c.slug}/`, lang), listing(ctx, c));
+  if (samplesOn()) await write(outPath('/sample-kit/', lang), sampleKitPage(ctx));
   for (const p of products) await write(outPath(`/products/${p.slug}/`, lang), productPage(ctx, p));
   await write(outPath('/size-guide/', lang), sizeGuide(ctx));
   await write(outPath('/faq/', lang), faqPage(ctx));
@@ -451,7 +551,8 @@ await write('404.html', notFound(makeCtx(DEF)));
 
 addSitemap('/', langs);
 addSitemap('/products/', langs);
-for (const c of S.categories || []) if (products.some((p) => p.category === c.slug)) addSitemap(`/collections/${c.slug}/`, langs);
+for (const c of S.categories || []) if (inCategory(c.slug).length) addSitemap(`/collections/${c.slug}/`, langs);
+if (samplesOn()) addSitemap('/sample-kit/', langs);
 for (const p of products) addSitemap(`/products/${p.slug}/`, langs.filter((l) => l === DEF || p.i18n?.[l]), p.colors.flatMap((c) => c.images || []).slice(0, 20).map(absImg));
 addSitemap('/size-guide/', langs); addSitemap('/faq/', langs);
 for (const pg of S.pages || []) if (!/\[add /i.test(pg.body)) addSitemap(`/${pg.slug}/`, langs.filter((l) => l === DEF || pg.i18n?.[l]));
@@ -466,7 +567,8 @@ await write('assets/config.js', `window.SC=${JSON.stringify({
   api: S.store.apiUrl, base: BASE, fileLinks: FILE_LINKS, defaultLang: DEF, langs, baseCurrency: S.baseCurrency,
   currencies: S.currencies.filter((c) => c.enabled), fxMarkup: S.fxMarkup, fx,
   payments: Object.fromEntries(Object.entries(S.payments).map(([k, v]) => [k, { enabled: v.enabled, label: v.label, currencies: v.currencies || [] }])),
-  tax: S.tax, store: { name: S.store.name, email: S.store.email },
+  tax: S.tax, store: { name: S.store.name, email: S.store.email, whatsapp: S.store.whatsapp || '' },
+  samples: { enabled: samplesOn(), maxPieces: S.samples?.maxPieces || 5, markupPct: S.samples?.markupPct || 0 },
 })};`);
 await write('manifest.webmanifest', JSON.stringify({ name: S.store.name, short_name: S.store.name, start_url: BASE + '/', display: 'standalone', background_color: '#F2F1EE', theme_color: '#0E0E0E', icons: [{ src: BASE + '/assets/img/favicon.svg', sizes: 'any', type: 'image/svg+xml' }] }));
 await write('.nojekyll', '');

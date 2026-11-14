@@ -78,6 +78,12 @@ const F = {
   color: (k) => `<input class="i" type="color" data-k="${k}">`,
 };
 /** Repeater for arrays of objects. fields: [{k,label,kind:'text'|'num'|'area'|'bool'|'csv',wide}] */
+function catOptions(S) {
+  const cats = S.categories || [], out = [];
+  for (const t of cats.filter((c) => !c.parent)) { out.push([t.slug, t.name]); for (const c of cats.filter((x) => x.parent === t.slug)) out.push([c.slug, `${t.name} › ${c.name}`]); }
+  for (const c of cats) if (c.parent && !cats.some((t) => t.slug === c.parent)) out.push([c.slug, c.name]);
+  return out;
+}
 function rep(path, fields, arr = [], { cols, addLabel = 'Add' } = {}) {
   const tpl = cols || fields.map((f) => (f.kind === 'bool' ? 'auto' : f.wide ? '2fr' : '1fr')).join(' ');
   return `<div class="rep" data-rep="${path}">${(arr || []).map((_, i) => `<div class="ri" style="grid-template-columns:${tpl} auto">
@@ -373,10 +379,10 @@ async function viewProduct(id) {
   const render = () => {
     const panes = {
       basics: `<div class="grid3">${F.text('name', 'Product name')}${F.text('line', 'Line name', { hint: 'big word, e.g. Aurum' })}${F.text('code', 'Code', { ph: 'SC-07' })}
-        ${F.text('type', 'Type', { ph: 'Polo / T-shirt / Hoodie' })}${F.sel('category', 'Category', (S.categories || []).map((c) => [c.slug, c.name]))}${F.text('gender', 'Gender label', { ph: "Men's / Women's / blank" })}
+        ${F.text('type', 'Type', { ph: 'Polo / T-shirt / Hoodie' })}${F.sel('category', 'Category', catOptions(S))}${F.text('gender', 'Gender label', { ph: "Men's / Women's / blank" })}
         ${F.text('sleeve', 'Sleeve')}${F.sel('status', 'Status', [['draft', 'Draft'], ['published', 'Published'], ['archived', 'Archived']])}${F.num('sort', 'Sort order')}
         ${F.text('slug', 'URL slug', { hint: `/products/${esc(p.slug || '…')}/` })}${F.sel('heroColor', 'Hero colour', p.colors.map((c) => c.name))}${F.text('leadTime', 'Dispatch / lead time')}</div>
-        <div class="stack" style="margin-top:16px">${F.text('tagline', 'Tagline', { max: 140 })}${F.area('short', 'Short description', { rows: 2, hint: 'used on cards, feeds and search' })}</div>`,
+        <div class="stack" style="margin-top:16px">${F.csv('categories', 'Also show in', { hint: 'optional extra category slugs, comma-separated: ' + esc((S.categories || []).map((c) => c.slug).join(', ')) })}${F.text('tagline', 'Tagline', { max: 140 })}${F.area('short', 'Short description', { rows: 2, hint: 'used on cards, feeds and search' })}</div>`,
       content: `<div class="stack">${F.area('description', 'Long description', { rows: 10, hint: 'Markdown: blank line between paragraphs, ## heading, - bullets, **bold**' })}
         <h3>Highlights <span class="muted mono">numbered tiles under the description</span></h3>${rep('highlights', [{ k: 'title', label: 'Title' }, { k: 'text', label: 'Sub-text', wide: true }], p.highlights)}
         <h3>Impact numbers <span class="muted mono">optional lime band, e.g. 5,000 L water saved</span></h3>${rep('impact', [{ k: 'value', label: 'Value' }, { k: 'label', label: 'Label', wide: true }], p.impact)}
@@ -389,7 +395,8 @@ async function viewProduct(id) {
       uses: `<h3>Use cases <span class="muted mono">who it's for — great for SEO and AI answers</span></h3>${rep('useCases', [{ k: 'title', label: 'Title' }, { k: 'text', label: 'Description', kind: 'area', wide: true, rows: 2 }], p.useCases)}
         <h3 style="margin-top:18px">Product FAQs <span class="muted mono">shown with the store FAQs, marked up as FAQPage</span></h3>${rep('faqs', [{ k: 'q', label: 'Question' }, { k: 'a', label: 'Answer', kind: 'area', wide: true, rows: 2 }], p.faqs)}`,
       colours: colourPane(p),
-      pricing: `<div class="grid3">${F.num('price', `Base unit price (${S.baseCurrency})`)}${F.num('moq', 'Minimum order (pcs per product)', { hint: 'sizes & colours mix' })}${F.num('weightG', 'Net weight per piece (grams)', { hint: 'weigh one garment, e.g. 260 — drives DHL rates' })}</div>
+      pricing: `<div class="grid3">${F.num('price', `Base unit price (${S.baseCurrency})`)}${F.num('moq', 'Minimum order (pcs per product)', { hint: 'sizes & colours mix' })}${F.num('weightG', 'Net weight per piece (grams)', { hint: 'weigh one garment, e.g. 260 — drives DHL rates' })}
+        ${F.num('samplePrice', `Sample price per piece (${S.baseCurrency})`, { hint: 'blank = base unit price' + (S.samples?.markupPct ? ` + ${S.samples.markupPct}%` : '') })}</div>
         <p class="muted" id="wprev" style="font-size:13px"></p>
         <h3 style="margin-top:18px">Volume tiers</h3>${rep('tiers', [{ k: 'min', label: 'From qty', kind: 'num' }, { k: 'price', label: `Unit price (${S.baseCurrency})`, kind: 'num' }], p.tiers, { addLabel: 'Add tier' })}
         <h3 style="margin-top:18px">Preview in enabled currencies <span class="muted mono">rate · markup · rounding</span></h3><div id="pricePrev"></div>`,
@@ -602,11 +609,15 @@ async function viewSettings() {
     const allLangs = { en: 'English', de: 'Deutsch', fr: 'Français', es: 'Español' };
     const panes = {
       store: `<div class="grid3">${F.text('store.name', 'Store name')}${F.text('store.legalName', 'Legal name')}${F.text('store.tagline', 'Tagline')}
-        ${F.text('store.email', 'Email')}${F.text('store.phone', 'Phone')}${F.text('store.whatsapp', 'WhatsApp')}
+        ${F.text('store.email', 'Email')}${F.text('store.phone', 'Phone')}${F.text('store.whatsapp', 'WhatsApp number', { hint: 'with country code, e.g. +91 90330 21196 — shows the chat button' })}
         ${F.text('store.domain', 'Domain')}${F.text('store.siteUrl', 'Site URL')}${F.text('store.apiUrl', 'API URL')}</div>
         <h3 style="margin-top:18px">Address</h3><div class="grid3">${F.text('store.address.line1', 'Address line 1')}${F.text('store.address.line2', 'Line 2')}${F.text('store.address.city', 'City')}${F.text('store.address.state', 'State')}${F.text('store.address.postcode', 'PIN code')}${F.text('store.address.country', 'Country (ISO)')}</div>
         <div class="stack" style="margin-top:18px">${F.text('store.logo', 'Logo URL', { hint: 'leave empty to use the S CREATION wordmark' })}${F.text('store.announcement', 'Announcement bar')}
-        <div class="grid3">${F.text('store.social.instagram', 'Instagram URL')}${F.text('store.social.linkedin', 'LinkedIn URL')}${F.text('store.social.facebook', 'Facebook URL')}</div></div>`,
+        ${F.text('store.whatsappMessage', 'WhatsApp greeting', { hint: 'pre-filled message; the page or product name is added automatically' })}
+        <div class="grid3">${F.text('store.social.instagram', 'Instagram URL')}${F.text('store.social.linkedin', 'LinkedIn URL')}${F.text('store.social.facebook', 'Facebook URL')}</div></div>
+        <h3 style="margin-top:22px">Sample kit</h3>
+        <div class="grid3">${F.bool('samples.enabled', 'Sell sample kits')}${F.num('samples.maxPieces', 'Max pieces per kit')}${F.num('samples.markupPct', 'Sample price markup %', { hint: 'on the base unit price; a product can set its own sample price' })}</div>
+        <div class="stack">${F.text('samples.title', 'Section title')}${F.area('samples.text', 'Section text', { rows: 2 })}${F.text('samples.dispatchDays', 'Dispatch time (days)')}</div>`,
       currency: `<div class="grid3">${F.text('baseCurrency', 'Base currency', { hint: 'prices are entered in this currency' })}${F.num('fxMarkup', 'Default FX markup %', { hint: 'covers conversion fees' })}<div></div></div>
         <h3 style="margin-top:18px">Currencies shown on the site</h3>${rep('currencies', [{ k: 'code', label: 'ISO code' }, { k: 'enabled', label: 'On', kind: 'bool' }, { k: 'round', label: 'Round up to', kind: 'num' }, { k: 'markup', label: 'Markup % (optional)', kind: 'num' }], S.currencies, { addLabel: 'Add currency' })}
         <div class="row" style="margin-top:14px"><span class="muted">Rates: ${esc(fxCache?.source || 'fallback')} · ${esc(fxCache?.fetchedAt || fxCache?.updated || '')} · refreshed daily</span><button class="btn ghost sm" data-fx>Refresh rates now</button></div>
@@ -640,7 +651,9 @@ async function viewSettings() {
       tax: `<p class="muted">Tax is added on goods at checkout for orders shipped to these countries. For exports from India (DAP), import VAT/duty is collected by DHL from the buyer, so other countries are usually left out.</p>
         ${rep('tax.rules', [{ k: 'country', label: 'Country (ISO)' }, { k: 'rate', label: 'Rate %', kind: 'num' }, { k: 'label', label: 'Label (e.g. GST)' }], S.tax.rules, { addLabel: 'Add rule' })}
         <p class="note" style="margin-top:14px">Check GST rates and invoicing rules (incl. LUT for zero-rated exports) with your accountant.</p>`,
-      content: `<h3>Categories</h3>${rep('categories', [{ k: 'slug', label: 'Slug' }, { k: 'name', label: 'Name' }], S.categories)}
+      content: `<h3>Categories <span class="muted mono">departments and their categories</span></h3>
+        <p class="muted" style="font-size:13px">Leave <b>Parent</b> empty for a department (Men, Women, Kids, Sportswear…). For a category inside one, enter the department's slug (e.g. <code>women</code>). Departments and categories appear in the menu and get their own SEO page once they contain a published product.</p>
+        ${rep('categories', [{ k: 'slug', label: 'Slug' }, { k: 'name', label: 'Name' }, { k: 'parent', label: 'Parent slug' }, { k: 'google', label: 'Google category ID' }, { k: 'intro', label: 'Intro text (SEO)', kind: 'area', wide: true, rows: 1 }], S.categories, { cols: '1fr 1fr 1fr .8fr 3fr', addLabel: 'Add category' })}
         <h3 style="margin-top:18px">Store FAQs <span class="muted mono">home, FAQ page and every product page</span></h3>${rep('faqs', [{ k: 'q', label: 'Question' }, { k: 'a', label: 'Answer', kind: 'area', wide: true, rows: 2 }], S.faqs)}
         <h3 style="margin-top:18px">Pages</h3>${rep('pages', [{ k: 'slug', label: 'Slug' }, { k: 'title', label: 'Title' }, { k: 'body', label: 'Body (Markdown)', kind: 'area', wide: true, rows: 5 }], S.pages, { cols: '1fr 1fr 3fr' })}
         <p class="muted" style="font-size:12px">Pages that still contain “[Add …]” placeholders are hidden from search engines.</p>
@@ -678,7 +691,7 @@ async function viewSettings() {
   };
   const dot = (b) => `<span class="dot ${b ? 'ok' : 'no'}"></span><span class="mono muted">${b ? 'connected' : 'not configured'}</span>`;
   shell('settings', 'Settings', `<div id="sedit"></div><div class="savebar"><span class="mono">Settings</span><span class="spacer"></span><button class="btn accent" id="ssave">Save settings</button></div>`);
-  wireReps($('#sedit'), S, render, { currencies: { code: '', enabled: true, round: 0.05 }, 'tax.rules': { country: '', rate: 0, label: 'VAT' }, categories: { slug: '', name: '' }, faqs: { q: '', a: '' }, pages: { slug: '', title: '', body: '' }, 'shipping.manual.zones': { name: '', countries: [], base: 0, perKg: 0, days: '' } });
+  wireReps($('#sedit'), S, render, { currencies: { code: '', enabled: true, round: 0.05 }, 'tax.rules': { country: '', rate: 0, label: 'VAT' }, categories: { slug: '', name: '', parent: '', google: '', intro: '' }, faqs: { q: '', a: '' }, pages: { slug: '', title: '', body: '' }, 'shipping.manual.zones': { name: '', countries: [], base: 0, perKg: 0, days: '' } });
   render();
   $('#ssave').onclick = async () => {
     try { settingsCache = (await api('/api/admin/settings', { method: 'PUT', body: S })).settings; dirty = false; toast('Settings saved. Publish to update the site.'); }

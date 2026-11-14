@@ -15,7 +15,7 @@ const COUNTRY_CUR = { US: 'USD', GB: 'GBP', IN: 'INR', AE: 'AED', AU: 'AUD', CA:
 function cleanItems(items) {
   if (!Array.isArray(items) || !items.length) throw bad('Your cart is empty');
   if (items.length > 500) throw bad('Too many cart lines');
-  return items.map((i) => ({ productId: clean(i.productId, 40), color: clean(i.color, 60), size: clean(i.size, 20), qty: Math.max(0, Math.min(100000, Math.floor(+i.qty || 0))) })).filter((i) => i.qty > 0);
+  return items.map((i) => ({ productId: clean(i.productId, 40), color: clean(i.color, 60), size: clean(i.size, 20), qty: Math.max(0, Math.min(100000, Math.floor(+i.qty || 0))), ...(i.sample ? { sample: true } : {}) })).filter((i) => i.qty > 0);
 }
 function validateItems(items, products) {
   for (const i of items) {
@@ -25,7 +25,12 @@ function validateItems(items, products) {
     if (!p.sizes.includes(i.size)) throw bad(`${p.name}: size ${i.size} is no longer available`);
   }
 }
-const itemsHash = (items) => sha256(JSON.stringify([...items].sort((a, b) => `${a.productId}${a.color}${a.size}`.localeCompare(`${b.productId}${b.color}${b.size}`)).map((i) => [i.productId, i.color, i.size, i.qty])));
+function checkSamples(priced, settings) {
+  if (!priced.samplePieces) return;
+  if (settings.samples?.enabled === false) throw bad('Sample orders are currently not available');
+  if (priced.samplePieces > priced.sampleLimit) throw bad(`A sample kit can have up to ${priced.sampleLimit} pieces`);
+}
+const itemsHash = (items) => sha256(JSON.stringify([...items].sort((a, b) => `${a.productId}${a.color}${a.size}`.localeCompare(`${b.productId}${b.color}${b.size}`)).map((i) => [i.productId, i.color, i.size, i.qty, i.sample ? 1 : 0])));
 function cleanAddress(a = {}) {
   const out = { name: clean(a.name, 120), company: clean(a.company, 120), line1: clean(a.line1, 120), line2: clean(a.line2, 120), city: clean(a.city, 80), state: clean(a.state, 80), postcode: clean(a.postcode, 20), country: clean(a.country, 2).toUpperCase(), phone: clean(a.phone, 30) };
   if (!/^[A-Z]{2}$/.test(out.country)) throw bad('Please choose a country');
@@ -65,6 +70,7 @@ export function publicRoutes(r) {
     const address = cleanAddress(b.address);
     if (!address.postcode || !address.city) throw bad('Please enter your city and postal code');
     const priced = priceCart(items, products, settings, fx, cur);
+    checkSamples(priced, settings);
     if (!priced.ok) throw bad('Each product must meet its minimum order quantity');
     const baseSubtotal = priceCart(items, products, settings, fx, settings.baseCurrency).subtotal;
     const q = await quote({ env, settings, fx, address, weightG: priced.weightG, declaredValueBase: baseSubtotal });
@@ -94,6 +100,7 @@ export function publicRoutes(r) {
     if (!customer.name || !address.line1 || !address.city || !address.postcode) throw bad('Please complete your shipping address');
 
     const priced = priceCart(items, products, settings, fx, cur);
+    checkSamples(priced, settings);
     if (!priced.ok) throw bad('Each product must meet its minimum order quantity');
     const rate = await verify(env.SESSION_SECRET, b.rateToken);
     if (!rate || rate.k !== 'rate') throw bad('Your shipping quote expired. Please recalculate shipping.');
@@ -109,7 +116,7 @@ export function publicRoutes(r) {
     const order = {
       lang: ['en', 'de', 'fr', 'es'].includes(b.lang) ? b.lang : 'en', currency: cur, fxRate: cur === settings.baseCurrency ? 1 : fx.rates[cur],
       customer, address, notes: clean(b.notes, 1000), gateway: gw.id,
-      groups: priced.groups.map(({ productId, code, name, slug, hsCode, qty, moq, unit, total, lines }) => ({ productId, code, name, slug, hsCode, qty, moq, unit, total, lines,
+      groups: priced.groups.map(({ productId, code, name, slug, hsCode, qty, moq, unit, total, lines, sample }) => ({ productId, code, name, slug, hsCode, qty, moq, unit, total, lines, ...(sample ? { sample: true } : {}),
         weightG: products.find((p) => p.id === productId)?.weightG })),
       subtotal: priced.subtotal, weightG: priced.weightG,
       shipping: { carrier: rate.carrier, code: rate.code, service: rate.service, eta: rate.eta, amountBase: rate.amountBase },

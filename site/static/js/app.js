@@ -9,7 +9,7 @@ const lang = document.body.dataset.lang || 'en';
 const locale = LOCALES[lang] || 'en';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
-const settings = { baseCurrency: SC.baseCurrency, currencies: SC.currencies, fxMarkup: SC.fxMarkup, tax: SC.tax };
+const settings = { baseCurrency: SC.baseCurrency, currencies: SC.currencies, fxMarkup: SC.fxMarkup, tax: SC.tax, samples: SC.samples || {} };
 const store = {
   get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
@@ -77,12 +77,28 @@ function applyPrices() {
 const cart = {
   items: () => store.get('sc_cart', []),
   save(items) { store.set('sc_cart', items.filter((i) => i.qty > 0)); updateCount(); },
-  setProductMix(productId, mix) { // mix: [{color,size,qty}] replaces this product's lines
-    const rest = cart.items().filter((i) => i.productId !== productId);
+  setProductMix(productId, mix) { // mix: [{color,size,qty}] replaces this product's bulk lines (samples stay)
+    const rest = cart.items().filter((i) => i.productId !== productId || i.sample);
     cart.save([...rest, ...mix.map((m) => ({ productId, ...m }))]);
   },
   clear() { cart.save([]); },
+  samplePieces: () => cart.items().filter((i) => i.sample).reduce((n, i) => n + i.qty, 0),
+  addSample(productId, color, size, qty = 1) { // returns pieces actually added
+    const max = SC.samples?.maxPieces || 5, room = max - cart.samplePieces();
+    const n = Math.min(qty, room);
+    if (n <= 0) return 0;
+    const items = cart.items();
+    const hit = items.find((i) => i.sample && i.productId === productId && i.color === color && i.size === size);
+    if (hit) hit.qty += n; else items.push({ productId, color, size, qty: n, sample: true });
+    cart.save(items);
+    return n;
+  },
 };
+function sampleToast(n, name) {
+  const max = SC.samples?.maxPieces || 5;
+  if (!n) return toast(t(lang, 'sampleFull', { n: max }), 5000);
+  toast(`${t(lang, 'sampleAdded')}: ${esc(name)} — ${t(lang, 'kitPieces', { k: cart.samplePieces(), n: max })} · <a href="${href('/cart/')}">${t(lang, 'cart')} →</a>`, 5000);
+}
 function updateCount() { const n = cart.items().reduce((s, i) => s + i.qty, 0); for (const el of $$('[data-cart-count]')) el.textContent = n; }
 function toast(html, ms = 3500) { const el = $('.toast'); if (!el) return; el.innerHTML = html; el.classList.add('show'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), ms); }
 
@@ -101,7 +117,7 @@ function initHeader() {
 function initPDP() {
   const root = $('[data-product]'); if (!root) return;
   const P = JSON.parse($('#pdata').textContent);
-  const existing = cart.items().filter((i) => i.productId === P.id);
+  const existing = cart.items().filter((i) => i.productId === P.id && !i.sample);
   const qty = {}; // color -> size -> n
   for (const i of existing) ((qty[i.color] ??= {})[i.size] = i.qty);
   let color = P.hero || P.colors[0]?.name;
@@ -111,6 +127,7 @@ function initPDP() {
     color = name;
     const c = P.colors.find((x) => x.name === name);
     $('[data-colname]').textContent = name;
+    const sbc = $('[data-sbcol]'); if (sbc) sbc.textContent = name;
     $('[data-shown]').textContent = `${t(lang, 'shownIn')} — ${name}`;
     $$('.sw', root).forEach((b) => b.setAttribute('aria-pressed', b.dataset.color === name));
     $('[data-main]').innerHTML = c.images?.length ? imgTag(c.images[imgIdx], { alt: `${P.name} in ${name} – view ${imgIdx + 1}`, sizes: '(max-width: 980px) 92vw, 50vw', eager: true }) : garmentSVG(P.type, c.hex, c.hex2);
@@ -148,6 +165,10 @@ function initPDP() {
     cart.setProductMix(P.id, mix);
     toast(`${t(lang, 'added')} — <a href="${href('/cart/')}">${t(lang, 'cart')} →</a>`);
   });
+  $('[data-sbadd]')?.addEventListener('click', () => {
+    const size = $('[data-sbsize]').value;
+    sampleToast(cart.addSample(P.id, color, size, 1), `${P.name} · ${color} · ${size}`);
+  });
   document.addEventListener('sc:prices', render);
   showColor(color);
   render();
@@ -163,15 +184,16 @@ async function initCartPage(root) {
     root.innerHTML = `<div class="cartgrid"><div>${priced.groups.map((g) => {
       const p = products.find((x) => x.id === g.productId);
       const c0 = p.colors.find((c) => c.name === g.lines[0].color) || p.colors[0];
-      return `<section class="cgroup" data-pid="${p.id}">
+      return `<section class="cgroup${g.sample ? ' sample' : ''}" data-pid="${p.id}"${g.sample ? ' data-sample' : ''}>
         <header><div class="thumb">${c0.image ? imgTag(c0.image, { alt: '', sizes: '96px', thumb: true }) : garmentSVG(p.type, c0.hex, c0.hex2)}</div>
-          <div style="flex:1"><div class="mono muted">${esc(p.code)}</div><h3>${esc(p.i18n?.[lang]?.name || p.name)}</h3><div class="muted" style="font-size:14px">${money(g.unit)} ${t(lang, 'perPc')} · ${t(lang, 'moq')} ${g.moq}</div></div>
-          <a class="btn ghost sm" href="${href('/products/' + p.slug + '/')}">${t(lang, 'edit')}</a></header>
+          <div style="flex:1"><div class="mono muted">${esc(p.code)}${g.sample ? ` <span class="pill lime">${t(lang, 'sampleBadge')}</span>` : ''}</div><h3>${esc(p.i18n?.[lang]?.name || p.name)}</h3><div class="muted" style="font-size:14px">${money(g.unit)} ${g.sample ? t(lang, 'samplePerPc') : `${t(lang, 'perPc')} · ${t(lang, 'moq')} ${g.moq}`}</div></div>
+          <a class="btn ghost sm" href="${href(g.sample ? '/sample-kit/' : '/products/' + p.slug + '/')}">${t(lang, 'edit')}</a></header>
         <table><thead><tr><th>${t(lang, 'colour')}</th><th>${t(lang, 'size')}</th><th class="r">${t(lang, 'qty')}</th><th class="r">${t(lang, 'total')}</th><th></th></tr></thead><tbody>
         ${g.lines.map((l) => `<tr><td>${esc(l.color)}</td><td>${esc(l.size)}</td><td class="r"><input type="number" min="0" value="${l.qty}" data-line="${esc(l.color)}|${esc(l.size)}" aria-label="${t(lang, 'qty')}"></td><td class="r">${money(+(g.unit * l.qty).toFixed(2))}</td><td class="r"><button class="xbtn" data-rm="${esc(l.color)}|${esc(l.size)}">${t(lang, 'remove')}</button></td></tr>`).join('')}
         </tbody></table>
-        <footer><div>${g.meetsMoq ? `<span class="okbox">✓ ${g.qty} ${t(lang, 'pcs')} · ${t(lang, 'moqMet')}</span>` : `<span class="warnbox">${t(lang, 'belowMoq', { n: g.moq - g.qty })}</span>`}</div><b>${money(g.total)}</b></footer>
+        <footer><div>${g.sample ? `<span class="muted mono" style="font-size:12px">${t(lang, 'kitPieces', { k: priced.samplePieces, n: priced.sampleLimit })}</span>` : g.meetsMoq ? `<span class="okbox">✓ ${g.qty} ${t(lang, 'pcs')} · ${t(lang, 'moqMet')}</span>` : `<span class="warnbox">${t(lang, 'belowMoq', { n: g.moq - g.qty })}</span>`}</div><b>${money(g.total)}</b></footer>
       </section>`; }).join('')}
+      ${priced.samplePieces > priced.sampleLimit ? `<div class="warnbox" style="margin-bottom:16px">${t(lang, 'sampleOver', { n: priced.sampleLimit, k: priced.samplePieces - priced.sampleLimit })}</div>` : ''}
       <a class="link" href="${href('/products/')}">← ${t(lang, 'continueShopping')}</a></div>
       <aside class="summary"><h2 style="font-size:22px">${t(lang, 'yourCart')}</h2>
         <div class="row"><span>${t(lang, 'subtotal')}</span><b>${money(priced.subtotal)}</b></div>
@@ -182,14 +204,14 @@ async function initCartPage(root) {
   };
   root.addEventListener('change', (e) => {
     const inp = e.target.closest('[data-line]'); if (!inp) return;
-    const pid = inp.closest('[data-pid]').dataset.pid, [c, s] = inp.dataset.line.split('|');
-    cart.save(cart.items().map((i) => (i.productId === pid && i.color === c && i.size === s ? { ...i, qty: Math.max(0, Math.floor(+inp.value || 0)) } : i)));
+    const g = inp.closest('[data-pid]'), pid = g.dataset.pid, smp = g.hasAttribute('data-sample'), [c, s] = inp.dataset.line.split('|');
+    cart.save(cart.items().map((i) => (i.productId === pid && !!i.sample === smp && i.color === c && i.size === s ? { ...i, qty: Math.max(0, Math.floor(+inp.value || 0)) } : i)));
     draw();
   });
   root.addEventListener('click', (e) => {
     const b = e.target.closest('[data-rm]'); if (!b) return;
-    const pid = b.closest('[data-pid]').dataset.pid, [c, s] = b.dataset.rm.split('|');
-    cart.save(cart.items().filter((i) => !(i.productId === pid && i.color === c && i.size === s)));
+    const g = b.closest('[data-pid]'), pid = g.dataset.pid, smp = g.hasAttribute('data-sample'), [c, s] = b.dataset.rm.split('|');
+    cart.save(cart.items().filter((i) => !(i.productId === pid && !!i.sample === smp && i.color === c && i.size === s)));
     draw();
   });
   document.addEventListener('sc:prices', draw);
@@ -247,6 +269,7 @@ async function initCheckout(root) {
     const tax = rate?.tax || 0;
     $('[data-sum]', root).innerHTML = `<h2 style="font-size:22px">${t(lang, 'yourCart')}</h2>
       ${p.groups.map((g) => `<div class="row"><span>${esc(g.name)} × ${g.qty}</span><span>${money(g.total)}</span></div>${g.meetsMoq ? '' : `<div class="warnbox">${t(lang, 'belowMoq', { n: g.moq - g.qty })}</div>`}`).join('')}
+      ${p.samplePieces > p.sampleLimit ? `<div class="warnbox">${t(lang, 'sampleOver', { n: p.sampleLimit, k: p.samplePieces - p.sampleLimit })}</div>` : ''}
       <div class="row" style="border-top:1px solid var(--line);margin-top:8px;padding-top:12px"><span>${t(lang, 'subtotal')}</span><b>${money(p.subtotal)}</b></div>
       <div class="row"><span>${t(lang, 'shipping')}${shipWeight && rate ? `<br><small class="muted">${shipWeight.weightKg} kg</small>` : ''}</span><span>${ship == null ? '—' : money(ship)}</span></div>
       ${tax ? `<div class="row"><span>${esc(rate.taxLabel || t(lang, 'tax'))}</span><span>${money(tax)}</span></div>` : ''}
@@ -351,6 +374,38 @@ function initContact() {
   });
 }
 
+// ---------------- sample kit page ----------------
+function initSampleKit() {
+  const root = $('[data-samplekit]'); if (!root) return;
+  const max = +root.dataset.max || 5;
+  const names = Object.fromEntries($$('[data-skp]', root).map((r) => [r.dataset.skp, $('h3', r).textContent]));
+  const draw = () => {
+    const items = cart.items().filter((i) => i.sample), k = items.reduce((n, i) => n + i.qty, 0);
+    $('[data-kitcount]', root).textContent = t(lang, 'kitPieces', { k, n: max });
+    $('[data-kitbar]', root).style.width = Math.min(100, (k / max) * 100) + '%';
+    $('[data-kitlist]', root).innerHTML = items.map((i) => `<div><b>${esc(names[i.productId] || i.productId)}</b>: ${esc(i.color)} · ${esc(i.size)} × ${i.qty} <button class="xbtn" data-skrm="${esc(i.productId)}|${esc(i.color)}|${esc(i.size)}">✕</button></div>`).join('') || `<p class="muted" style="font-size:13px">${t(lang, 'sampleHint', { n: max })}</p>`;
+    $$('[data-skadd]', root).forEach((b) => (b.disabled = k >= max));
+  };
+  root.addEventListener('change', (e) => {
+    const sel = e.target.closest('[data-skc]'); if (!sel) return;
+    const u = sel.selectedOptions[0]?.dataset.img, box = $('[data-skimg]', sel.closest('[data-skp]'));
+    if (u) box.innerHTML = imgTag(u, { alt: `${names[sel.closest('[data-skp]').dataset.skp]} – ${sel.value}`, sizes: '120px' });
+  });
+  root.addEventListener('click', (e) => {
+    const add = e.target.closest('[data-skadd]'), rm = e.target.closest('[data-skrm]');
+    if (add) {
+      const r = add.closest('[data-skp]'), color = $('[data-skc]', r).value, size = $('[data-sks]', r).value;
+      sampleToast(cart.addSample(r.dataset.skp, color, size, +$('[data-skq]', r).value || 1), `${names[r.dataset.skp]} · ${color} · ${size}`);
+      draw();
+    }
+    if (rm) {
+      const [pid, c, s] = rm.dataset.skrm.split('|');
+      cart.save(cart.items().filter((i) => !(i.sample && i.productId === pid && i.color === c && i.size === s))); draw();
+    }
+  });
+  draw();
+}
+
 // ---------------- home hero slideshow ----------------
 function initHero() {
   const root = $('[data-hero]'); if (!root) return;
@@ -398,6 +453,7 @@ function initHero() {
 // ---------------- boot ----------------
 initHeader();
 initHero();
+initSampleKit();
 paintAccount();
 await initCurrency();
 applyPrices();

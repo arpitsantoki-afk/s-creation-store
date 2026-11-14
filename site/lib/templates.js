@@ -1,6 +1,16 @@
 import { esc, md, plain, garmentSVG } from './util.js';
 import { t, LANG_NAMES, LOCALES } from './i18n.js';
 import { imgTag } from '../../shared/img.js';
+import { catTree, productCats, catName } from '../../shared/catalog.js';
+
+/** wa.me link for the store's WhatsApp Business number (digits only, with country code). */
+export function waLink(S, extra = '') {
+  const n = String(S.store.whatsapp || '').replace(/\D/g, '');
+  if (!n) return '';
+  const msg = [S.store.whatsappMessage || '', extra].filter(Boolean).join('\n');
+  return `https://wa.me/${n}${msg ? '?text=' + encodeURIComponent(msg) : ''}`;
+}
+const WA_ICON = '<svg viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><path fill="currentColor" d="M16 3C8.8 3 3 8.7 3 15.8c0 2.5.7 4.9 2 7L3 29l6.4-2c2 1.1 4.3 1.7 6.6 1.7 7.2 0 13-5.7 13-12.8S23.2 3 16 3zm0 23.4c-2.1 0-4.2-.6-6-1.7l-.4-.3-3.8 1.2 1.2-3.7-.3-.4a10.4 10.4 0 0 1-1.7-5.7C5 9.9 9.9 5.1 16 5.1S27 9.9 27 15.9s-4.9 10.5-11 10.5zm6-7.8c-.3-.2-2-1-2.3-1.1-.3-.1-.5-.2-.8.2l-1 1.3c-.2.2-.4.3-.7.1-.3-.2-1.4-.5-2.7-1.7-1-.9-1.7-2-1.9-2.3-.2-.3 0-.5.1-.7l.5-.6.3-.5c.1-.2 0-.4 0-.6l-1-2.5c-.3-.7-.6-.6-.8-.6h-.7c-.2 0-.6.1-.9.4-.3.3-1.2 1.1-1.2 2.8s1.2 3.3 1.4 3.5c.2.2 2.4 3.7 5.9 5.1.8.4 1.5.6 2 .7.8.3 1.6.2 2.2.1.7-.1 2-.8 2.3-1.6.3-.8.3-1.4.2-1.6-.1-.1-.3-.2-.6-.4z"/></svg>';
 
 /** Context passed to every template: { S (settings), lang, langs, base, href(), url(), fileLinks } */
 
@@ -28,7 +38,7 @@ export const productImage = (p, color, cls = '', { sizes = '(max-width: 700px) 9
 const priceSpan = (amount, S) => `<span data-price="${amount}">${esc(fmtBase(amount, S))}</span>`;
 export const fmtBase = (v, S) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: S.baseCurrency, maximumFractionDigits: 0 }).format(v);
 
-export function layout(ctx, { title, description, path, body, jsonld = [], alternates = null, canonical = null, noindex = false, ogImage = null, pageClass = '' }) {
+export function layout(ctx, { title, description, path, body, jsonld = [], alternates = null, canonical = null, noindex = false, ogImage = null, pageClass = '', waText = '' }) {
   const { S, lang } = ctx;
   const site = S.store.siteUrl.replace(/\/$/, '');
   const origin = ctx.base && site.endsWith(ctx.base) ? site.slice(0, -ctx.base.length) : site;
@@ -82,7 +92,7 @@ ${S.store.announcement ? `<div class="announce">${esc(S.store.announcement)}</di
   <a class="logo" href="${ctx.href('/')}" aria-label="${esc(S.store.name)} home">${logo}</a>
   <nav class="nav" id="nav" aria-label="Main">
     <a href="${ctx.href('/products/')}"${navActive('/products/')}>${t(lang, 'shop')}</a>
-    ${(S.categories || []).map((c) => `<a href="${ctx.href('/collections/' + c.slug + '/')}"${navActive('/collections/' + c.slug + '/')}>${esc(c.i18n?.[lang] || c.name)}</a>`).join('')}
+    ${navTree(ctx, path)}
     <a href="${ctx.href('/size-guide/')}"${navActive('/size-guide/')}>${t(lang, 'sizeGuide')}</a>
     <a href="${ctx.href('/contact/')}"${navActive('/contact/')}>${t(lang, 'contact')}</a>
   </nav>
@@ -99,9 +109,11 @@ ${body}
   <div class="cols">
     <div><a class="logo" href="${ctx.href('/')}"><i></i>${esc(S.store.name.toUpperCase())}</a>
       <p class="note">${t(lang, 'footerNote')}</p>
-      <p class="note mono" style="font-size:11px">${esc(S.store.email)}<br>${esc(S.store.phone)}</p></div>
+      <p class="note mono" style="font-size:11px">${esc(S.store.email)}<br>${esc(S.store.phone)}${S.store.whatsapp ? `<br><a href="${esc(waLink(S))}" target="_blank" rel="noopener">WhatsApp ↗</a>` : ''}</p></div>
     <div><h4>${t(lang, 'shop')}</h4><ul>
-      ${ctx.products.map((p) => `<li><a href="${ctx.href('/products/' + p.slug + '/')}">${esc(locProduct(p, lang).name)}</a></li>`).join('')}
+      ${liveTree(ctx).map((d) => `<li><a href="${ctx.href('/collections/' + d.slug + '/')}">${esc(catName(d, lang))}</a></li>`).join('')}
+      <li><a href="${ctx.href('/products/')}">${t(lang, 'allProducts')}</a></li>
+      ${S.samples?.enabled !== false ? `<li><a href="${ctx.href('/sample-kit/')}">${t(lang, 'sampleKit')}</a></li>` : ''}
     </ul></div>
     <div><h4>${t(lang, 'company2')}</h4><ul>
       ${pageLink('about')}${pageLink('contact')}
@@ -115,6 +127,7 @@ ${body}
   <svg class="bigword" viewBox="0 0 1000 150" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><text x="0" y="128" textLength="1000" lengthAdjust="spacingAndGlyphs">${esc(S.store.name.toUpperCase())}</text></svg>
   <div class="bottom"><span>© ${new Date().getFullYear()} ${esc(S.store.legalName || S.store.name)} · Made in India</span><span>${esc(S.store.domain)}</span></div>
 </div></footer>
+${S.store.whatsapp ? `<a class="wa-fab" href="${esc(waLink(S, waText || `${t(lang, 'waPage')}: ${canon}`))}" target="_blank" rel="noopener" aria-label="${t(lang, 'waChat')}">${WA_ICON}<span>${t(lang, 'waChat')}</span></a>` : ''}
 <div class="toast" role="status" aria-live="polite"></div>
 </body>
 </html>`;
@@ -153,3 +166,19 @@ export function crumbs(ctx, trail) {
 }
 
 export { md, esc, plain, t, LANG_NAMES };
+
+/** Category tree limited to categories that contain products (ctx.products). */
+export function liveTree(ctx) {
+  const cats = ctx.S.categories || [];
+  const used = new Set(ctx.products.flatMap((p) => [...productCats(p, cats)]));
+  return catTree(cats).filter((d) => used.has(d.slug)).map((d) => ({ ...d, children: d.children.filter((c) => used.has(c.slug)) }));
+}
+function navTree(ctx, path) {
+  const { lang } = ctx;
+  const cur = (slug) => (path === '/collections/' + slug + '/' ? ' aria-current="page"' : '');
+  return liveTree(ctx).map((d) => {
+    const top = `<a href="${ctx.href('/collections/' + d.slug + '/')}"${cur(d.slug)}>${esc(catName(d, lang))}</a>`;
+    if (!d.children.length) return top;
+    return `<div class="dd">${top}<div class="ddm">${d.children.map((c) => `<a href="${ctx.href('/collections/' + c.slug + '/')}"${cur(c.slug)}>${esc(catName(c, lang))}</a>`).join('')}<a class="all" href="${ctx.href('/collections/' + d.slug + '/')}">${t(lang, 'allIn', { name: catName(d, lang) })} →</a></div></div>`;
+  }).join('');
+}

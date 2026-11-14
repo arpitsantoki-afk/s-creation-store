@@ -87,7 +87,7 @@
   },
   {
     "id": "sc-03", "code": "SC-03", "slug": "gaia-sustainable-polo-women", "status": "published", "sort": 3,
-    "name": "Gaia Sustainable Polo", "line": "Gaia", "type": "Polo", "category": "polos", "gender": "Women's", "sleeve": "Half sleeve",
+    "name": "Gaia Sustainable Polo", "line": "Gaia", "type": "Polo", "category": "womens-polos", "gender": "Women's", "sleeve": "Half sleeve",
     "tagline": "The women's recycled polo, with 5% Lycra stretch for a clean fitted shape.",
     "short": "A women's 240 GSM recycled polo with 5% Lycra stretch, made with Optiknit technology.",
     "description": "Gaia is our women's polo, made the same responsible way as Terra and cut for a clean, fitted shape. It's made with Turkish Optiknit technology from recycled plastic and leftover cotton. Each garment reuses at least four plastic bottles and saves about 5,000 litres of water.\n\nThe 240 GSM fabric blends 60% recycled cotton and 35% recycled polyester with 5% Lycra, so it moves with you and keeps its shape all day.\n\nIt's yarn-dyed with diamond-quality yarn and finished with a jacquard collar and cuffs, wood-textured buttons and reinforced side slits.",
@@ -130,7 +130,7 @@
   },
   {
     "id": "sc-04", "code": "SC-04", "slug": "astra-performance-polo", "status": "published", "sort": 4,
-    "name": "Astra Performance Polo", "line": "Astra", "type": "Polo", "category": "performance", "gender": "Men's", "sleeve": "Half sleeve",
+    "name": "Astra Performance Polo", "line": "Astra", "type": "Polo", "category": "performance", "categories": ["polos"], "gender": "Men's", "sleeve": "Half sleeve",
     "tagline": "Moisture-wicking, UV-protected and wrinkle-free. 16 colours.",
     "short": "A 200 GSM polyester performance polo that manages moisture, resists wrinkles and blocks UV.",
     "description": "Astra is built for long days and warm weather. The 200 GSM polyester fabric draws sweat away from the skin, so you stay dry and comfortable.\n\nIt has UV protection built into the fabric, and the wrinkle-free effect keeps it looking sharp from morning to evening. An anti-static finish means less cling.\n\nIt comes in 16 colours, from quiet neutrals to bold brights, so it works for teams, uniforms and everyday wear.",
@@ -175,7 +175,7 @@
   },
   {
     "id": "sc-05", "code": "SC-05", "slug": "luna-melange-polo", "status": "published", "sort": 5,
-    "name": "Luna Melange Polo", "line": "Luna", "type": "Polo", "category": "performance", "gender": "Men's", "sleeve": "Half sleeve",
+    "name": "Luna Melange Polo", "line": "Luna", "type": "Polo", "category": "performance", "categories": ["polos"], "gender": "Men's", "sleeve": "Half sleeve",
     "tagline": "Performance fabric with a soft, textured melange look.",
     "short": "A 200 GSM polyester melange polo with a soft, textured look and full performance features.",
     "description": "Luna pairs the polish of a melange fabric with everyday performance. The 200 GSM polyester melange has a subtle textured tone that looks refined up close.\n\nIt manages moisture, offers UV protection, resists wrinkles and has an anti-static finish, so it stays comfortable and sharp all day.\n\nIt comes in two soft tones, Onion and Pistachio, which are easy to style for work or the weekend.",

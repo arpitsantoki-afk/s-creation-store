@@ -45,37 +45,53 @@ export function format(v, cur, locale = 'en') {
   } catch { return `${cur} ${v}`; }
 }
 
+/** Sample price per piece (base currency). */
+export function samplePrice(product, settings) {
+  const sm = settings.samples || {};
+  if (Number(product.samplePrice) > 0) return Number(product.samplePrice);
+  const base = Number(product.price) || 0;
+  return +(base * (1 + (Number(sm.markupPct) || 0) / 100)).toFixed(2);
+}
+
 /**
- * Price a cart. items: [{productId, color, size, qty}]
- * Returns per-product groups with MOQ status and totals in `cur`.
+ * Price a cart. items: [{productId, color, size, qty, sample?}]
+ * Bulk lines are grouped per product (MOQ + tiers apply). Sample lines form their own
+ * group per product: no MOQ, priced per piece, limited to settings.samples.maxPieces per order.
  */
 export function priceCart(items, products, settings, fx, cur) {
   const byId = Object.fromEntries(products.map((p) => [p.id, p]));
+  const sm = settings.samples || {};
   const groups = {};
   for (const it of items) {
     const p = byId[it.productId];
     const qty = Math.max(0, Math.floor(Number(it.qty) || 0));
     if (!p || !qty) continue;
-    groups[p.id] ??= { product: p, lines: [], qty: 0 };
-    groups[p.id].lines.push({ color: it.color, size: it.size, qty });
-    groups[p.id].qty += qty;
+    const sample = !!it.sample;
+    const k = p.id + (sample ? '#sample' : '');
+    groups[k] ??= { product: p, sample, lines: [], qty: 0 };
+    groups[k].lines.push({ color: it.color, size: it.size, qty });
+    groups[k].qty += qty;
   }
-  let subtotal = 0, weightG = 0;
+  let subtotal = 0, weightG = 0, samplePieces = 0;
   const out = [];
   for (const g of Object.values(groups)) {
-    const baseUnit = tierPrice(g.product, g.qty);
+    const baseUnit = g.sample ? samplePrice(g.product, settings) : tierPrice(g.product, g.qty);
     const unit = convert(baseUnit, cur, settings, fx);
     const total = +(unit * g.qty).toFixed(decimals(cur));
     subtotal += total;
     weightG += g.qty * (Number(g.product.weightG) || 250);
+    if (g.sample) samplePieces += g.qty;
     out.push({
-      productId: g.product.id, code: g.product.code, name: g.product.name, slug: g.product.slug,
-      hsCode: g.product.hsCode, qty: g.qty, moq: g.product.moq || 1,
-      meetsMoq: g.qty >= (g.product.moq || 1), unit, total, lines: g.lines,
+      productId: g.product.id, code: g.product.code, name: g.product.name + (g.sample ? ' — Sample' : ''), slug: g.product.slug,
+      hsCode: g.product.hsCode, qty: g.qty, moq: g.sample ? 1 : (g.product.moq || 1), sample: g.sample,
+      meetsMoq: g.sample || g.qty >= (g.product.moq || 1), unit, total, lines: g.lines,
     });
   }
-  return { currency: cur, groups: out, subtotal: +subtotal.toFixed(decimals(cur)), weightG,
-    ok: out.length > 0 && out.every((g) => g.meetsMoq) };
+  out.sort((a, b) => a.sample - b.sample);
+  const sampleLimit = Number(sm.maxPieces) || 5;
+  const samplesOk = !samplePieces || (sm.enabled !== false && samplePieces <= sampleLimit);
+  return { currency: cur, groups: out, subtotal: +subtotal.toFixed(decimals(cur)), weightG, samplePieces, sampleLimit,
+    ok: out.length > 0 && out.every((g) => g.meetsMoq) && samplesOk };
 }
 
 export function taxFor(country, amount, settings, cur) {

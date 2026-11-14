@@ -26,6 +26,8 @@ function normalizeProduct(p, existing = {}) {
     tiers: arr(p.tiers).map((t) => ({ min: Math.floor(num(t.min)), price: num(t.price) })).filter((t) => t.min > 0 && t.price > 0).sort((a, b) => a.min - b.min),
     sizes: arr(p.sizes).map((s) => clean(s, 20)).filter(Boolean),
     colors: arr(p.colors).map((c) => ({ name: clean(c.name, 60), hex: /^#[0-9a-f]{6}$/i.test(c.hex) ? c.hex : '#cccccc', ...(c.hex2 && /^#[0-9a-f]{6}$/i.test(c.hex2) ? { hex2: c.hex2 } : {}), images: arr(c.images).map((u) => clean(u, 500)).filter(Boolean) })).filter((c) => c.name),
+    categories: [...new Set(arr(p.categories).map((c) => clean(c, 40)).filter((c) => c && c !== clean(p.category, 40)))],
+    samplePrice: num(p.samplePrice) > 0 ? num(p.samplePrice) : null,
     i18n: typeof p.i18n === 'object' && p.i18n ? p.i18n : {},
   };
   if (!out.name) throw bad('Product name is required');

@@ -14,8 +14,29 @@ function deepMerge(base, over) {
 
 export async function getSettings(env) {
   const row = await env.DB.prepare('SELECT value FROM settings WHERE key = ?').bind('site').first();
+  if (!row) return structuredClone(defaultSettings);
+  const saved = JSON.parse(row.value);
+  if (Array.isArray(saved.categories) && saved.categories.length && !saved.categories.some((c) => 'parent' in c)) await migrateTaxonomy(env, saved);
   // Saved settings are merged over defaults, so new setting keys added in code appear automatically.
-  return row ? deepMerge(defaultSettings, JSON.parse(row.value)) : structuredClone(defaultSettings);
+  return deepMerge(defaultSettings, saved);
+}
+
+// One-time upgrade from flat categories (polos/performance/tees) to the department tree.
+async function migrateTaxonomy(env, saved) {
+  const def = defaultSettings.categories;
+  const extra = saved.categories.filter((c) => !def.some((d) => d.slug === c.slug)).map((c) => ({ ...c, parent: '' }));
+  const named = def.map((d) => ({ ...d, name: saved.categories.find((c) => c.slug === d.slug && d.parent)?.name || d.name }));
+  saved.categories = [...named, ...extra];
+  await saveSettings(env, saved);
+  const { results } = await env.DB.prepare('SELECT data, status FROM products').all();
+  for (const r of results) {
+    const p = { ...JSON.parse(r.data), status: r.status };
+    const women = /women|ladies|female/i.test(p.gender || '');
+    let changed = false;
+    if (p.category === 'polos' && women) { p.category = 'womens-polos'; changed = true; }
+    if (p.category === 'performance' && !women && !p.categories?.length) { p.categories = ['polos']; changed = true; }
+    if (changed) await saveProduct(env, p);
+  }
 }
 export async function saveSettings(env, value) {
   await env.DB.prepare("INSERT INTO settings (key, value, updated_at) VALUES ('site', ?, datetime('now')) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at")

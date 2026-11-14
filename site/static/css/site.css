@@ -431,3 +431,83 @@ html, body { overflow-x: clip; }
   .hero-show .tag { right: 12px; top: 12px; padding: 7px 9px; font-size: 10px; }
 }
 @media (prefers-reduced-motion: reduce) { .hero-show .hs, .hero-show .hs-img img, .hero-show .hs-card { transition: none; transform: none; } }
+
+/* Department dropdowns in the main menu */
+.nav .dd { position: relative; display: flex; }
+.nav .ddm { position: absolute; top: 100%; left: -14px; min-width: 200px; background: var(--paper); border: 1.5px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); padding: 6px 14px; display: none; flex-direction: column; z-index: 60; }
+.nav .dd:hover .ddm, .nav .dd:focus-within .ddm { display: flex; }
+.nav .ddm a { padding: 10px 0; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.nav .ddm a:last-child { border-bottom: 0; }
+.nav .ddm a.all { color: var(--muted); }
+@media (max-width: 900px) {
+  .nav .dd { flex-direction: column; }
+  .nav .ddm { position: static; display: flex; border: 0; box-shadow: none; padding: 0 0 0 16px; min-width: 0; background: none; }
+  .nav .ddm a.all { display: none; }
+}
+.filters.sub { margin: -16px 0 28px; }
+.filters.sub .pill { font-size: 11px; }
+
+/* WhatsApp */
+.wa-fab { position: fixed; right: 20px; bottom: 20px; z-index: 90; display: inline-flex; align-items: center; gap: 10px; height: 54px; padding: 0 18px 0 14px; border-radius: 999px;
+  background: #25D366; color: #fff; text-decoration: none; font: 600 15px var(--body); box-shadow: 0 6px 24px rgba(0,0,0,.18); transition: transform .2s ease; }
+.wa-fab:hover { transform: translateY(-2px); }
+.wa-fab svg { flex: none; }
+@media (max-width: 700px) { .wa-fab { right: 14px; bottom: 14px; width: 56px; height: 56px; padding: 0; justify-content: center; } .wa-fab span { display: none; } }
+.wa-inline { display: inline-flex; align-items: center; gap: 8px; margin: 14px 0 0; font: 500 13px var(--mono); letter-spacing: .04em; color: #128C7E; text-decoration: none; }
+.wa-inline::before { content: ''; width: 9px; height: 9px; border-radius: 50%; background: #25D366; }
+.cta-band .btn.ghost.inv { color: inherit; border-color: currentColor; }
+
+/* Sample box on product page */
+.samplebox { margin-top: 18px; border: 1.5px dashed var(--ink); padding: 14px 16px; background: var(--white); }
+.samplebox .sb-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+.samplebox p { font-size: 13px; margin: 6px 0 10px; }
+.samplebox .sb-pick { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+.samplebox .sb-col { font-size: 12px; letter-spacing: .05em; text-transform: uppercase; padding: 0 10px; height: 40px; display: inline-flex; align-items: center; border: 1px solid var(--line); }
+.samplebox select.i { width: auto; height: 40px; }
+
+/* Shop by category */
+.depts { padding-bottom: 0; }
+.dgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); border: 1px solid var(--ink); }
+.dtile { position: relative; display: block; text-decoration: none; border-right: 1px solid var(--ink); background: var(--stone-2); overflow: hidden; }
+.dtile:last-child { border-right: 0; }
+.dtile .dimg { aspect-ratio: 4/5; overflow: hidden; }
+.dtile .dimg img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 18%; transition: transform .5s cubic-bezier(.2,.7,.2,1); }
+.dtile:hover .dimg img { transform: scale(1.04); }
+.dtile .dtxt { position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 16px; background: var(--white); border-top: 1px solid var(--ink); }
+.dtile h3 { margin: 0 0 2px; font: 900 26px/1 var(--display); font-stretch: 125%; letter-spacing: -.03em; }
+.dtile .mono { font-size: 11px; letter-spacing: .04em; }
+@media (max-width: 700px) { .dgrid { grid-template-columns: 1fr 1fr; } .dtile { border-bottom: 1px solid var(--ink); } .dtile:nth-child(2n) { border-right: 0; } }
+
+/* Sample kit section (home) */
+.samplekit { background: var(--ink); color: var(--paper); }
+.samplekit .muted, .samplekit .sk-copy p { color: #c9c7c2; }
+.samplekit .btn.ghost { color: var(--paper); border-color: var(--paper); } .samplekit .btn.ghost:hover { background: #222; }
+.samplekit .sk-steps { color: var(--ink); } .samplekit .sk-steps .muted { color: var(--muted); }
+.samplekit .sk-copy .kicker { color: var(--accent); }
+.sk-grid { display: grid; grid-template-columns: 1fr 1.1fr; gap: 48px; align-items: center; }
+.sk-copy .kicker { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 12px; }
+.sk-copy h2 { margin: 0 0 12px; }
+.sk-copy p { max-width: 48ch; font-size: 17px; }
+.sk-price { margin: 16px 0 22px; font-size: 18px; }
+.sk-price b { font: 900 32px var(--display); }
+.sk-steps { list-style: none; margin: 0; padding: 0; border: 1.5px solid var(--ink); background: var(--paper); }
+.sk-steps li { display: flex; gap: 18px; padding: 20px 22px; border-bottom: 1px solid var(--line); }
+.sk-steps li:last-child { border-bottom: 0; }
+.sk-steps .n { font: 900 28px/1 var(--display); font-stretch: 125%; }
+.sk-steps p { margin: 4px 0 0; font-size: 14px; }
+@media (max-width: 900px) { .sk-grid { grid-template-columns: 1fr; gap: 28px; } }
+
+/* Sample kit page */
+.skwrap { display: grid; grid-template-columns: 1fr 320px; gap: 32px; align-items: start; }
+.sklist { border-top: 1px solid var(--ink); }
+.skrow { display: grid; grid-template-columns: 110px 1fr auto; gap: 20px; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--line); }
+.skimg { display: block; aspect-ratio: 4/5; background: var(--stone-2); overflow: hidden; }
+.skimg img, .skimg svg { width: 100%; height: 100%; object-fit: cover; }
+.skinfo h3 { margin: 2px 0 4px; font-size: 18px; } .skinfo h3 a { text-decoration: none; }
+.skprice { margin-top: 6px; }
+.skpick { display: grid; grid-template-columns: 1.4fr .8fr .6fr auto; gap: 8px; align-items: end; }
+.skpick .f { font-size: 11px; }
+.skpick select.i { height: 40px; }
+.kitbar { height: 6px; background: var(--stone); margin: 10px 0 6px; } .kitbar i { display: block; height: 100%; width: 0; background: var(--ink); transition: width .3s ease; }
+@media (max-width: 1000px) { .skwrap { grid-template-columns: 1fr; } .skrow { grid-template-columns: 90px 1fr; } .skpick { grid-column: 1 / -1; grid-template-columns: 1fr 1fr 1fr; } .skpick .btn { grid-column: 1 / -1; } }
+.cgroup.sample { border-style: dashed; }

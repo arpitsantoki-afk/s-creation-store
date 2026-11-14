@@ -22,7 +22,8 @@
       "linkedin": "",
       "facebook": ""
     },
-    "announcement": "Minimum order 50 pcs per style — mix any sizes and colours. Worldwide shipping by DHL Express."
+    "announcement": "Minimum order 50 pcs per style — mix any sizes and colours. Worldwide shipping by DHL Express.",
+    "whatsappMessage": "Hi S Creation, I have a question."
   },
   "baseCurrency": "INR",
   "fxMarkup": 2,
@@ -563,16 +564,64 @@
   ],
   "categories": [
     {
-      "slug": "polos",
-      "name": "Polos"
+      "slug": "men",
+      "name": "Men",
+      "parent": "",
+      "intro": "Polos and T-shirts for men — Pima cotton, recycled and performance fabrics, made in India."
     },
     {
-      "slug": "performance",
-      "name": "Performance"
+      "slug": "polos",
+      "name": "Polos",
+      "parent": "men",
+      "intro": "",
+      "google": "212"
     },
     {
       "slug": "tees",
-      "name": "T-shirts"
+      "name": "T-shirts",
+      "parent": "men",
+      "intro": "",
+      "google": "212"
+    },
+    {
+      "slug": "women",
+      "name": "Women",
+      "parent": "",
+      "intro": "Women's polos and innerwear, made in India."
+    },
+    {
+      "slug": "womens-polos",
+      "name": "Polos",
+      "parent": "women",
+      "intro": "",
+      "google": "212"
+    },
+    {
+      "slug": "womens-innerwear",
+      "name": "Innerwear",
+      "parent": "women",
+      "intro": "",
+      "google": "213"
+    },
+    {
+      "slug": "kids",
+      "name": "Kids",
+      "parent": "",
+      "intro": "Kids' wear in soft, durable cotton.",
+      "google": "1604"
+    },
+    {
+      "slug": "sportswear",
+      "name": "Sportswear",
+      "parent": "",
+      "intro": "Moisture-wicking, quick-dry performance wear."
+    },
+    {
+      "slug": "performance",
+      "name": "Performance polos",
+      "parent": "sportswear",
+      "intro": "",
+      "google": "212"
     }
   ],
   "publish": {
@@ -592,5 +641,13 @@
     "googleAdmins": true,
     "googleCustomers": true,
     "adminDomains": []
+  },
+  "samples": {
+    "enabled": true,
+    "maxPieces": 5,
+    "markupPct": 0,
+    "dispatchDays": "3–5",
+    "title": "Order a sample kit",
+    "text": "Feel the fabric before you commit. Pick up to 5 pieces across any styles, colours and sizes — no minimum. Shipped worldwide by DHL Express."
   }
 }
