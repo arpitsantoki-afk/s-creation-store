@@ -30,7 +30,7 @@ export async function xmlpiRates({ env, settings, address, boxes, declaredValueB
 <From><CountryCode>${x(o.country)}</CountryCode><Postalcode>${x(o.postcode)}</Postalcode><City>${x(o.city)}</City></From>
 <BkgDetails><PaymentCountryCode>${x(o.country)}</PaymentCountryCode><Date>${readyDate(1)}</Date><ReadyTime>PT10H00M</ReadyTime><ReadyTimeGMTOffset>+05:30</ReadyTimeGMTOffset>
 <DimensionUnit>CM</DimensionUnit><WeightUnit>KG</WeightUnit>
-<Pieces>${boxes.map((b, i) => `<Piece><PieceID>${i + 1}</PieceID><Height>${b.h}</Height><Depth>${b.l}</Depth><Width>${b.w}</Width><Weight>${b.weight}</Weight></Piece>`).join('')}</Pieces>
+<Pieces>${boxes.map((b, i) => `<Piece><PieceID>${i + 1}</PieceID>${b.l ? `<Height>${b.h}</Height><Depth>${b.l}</Depth><Width>${b.w}</Width>` : ''}<Weight>${b.weight}</Weight></Piece>`).join('')}</Pieces>
 ${env.DHL_ACCOUNT_NUMBER ? `<PaymentAccountNumber>${x(env.DHL_ACCOUNT_NUMBER)}</PaymentAccountNumber>` : ''}<IsDutiable>${intl ? 'Y' : 'N'}</IsDutiable><NetworkTypeCode>AL</NetworkTypeCode></BkgDetails>
 <To><CountryCode>${x(address.country)}</CountryCode><Postalcode>${x(address.postcode)}</Postalcode><City>${x(address.city)}</City></To>
 ${intl ? `<Dutiable><DeclaredCurrency>${x(settings.baseCurrency)}</DeclaredCurrency><DeclaredValue>${Math.max(1, Math.round(declaredValueBase))}</DeclaredValue></Dutiable>` : ''}

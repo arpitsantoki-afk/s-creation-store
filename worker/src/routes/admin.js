@@ -32,6 +32,7 @@ function normalizeProduct(p, existing = {}) {
   if (!out.colors.length) throw bad('Add at least one colour');
   if (!out.sizes.length) throw bad('Add at least one size');
   if (out.status === 'published' && !(out.price > 0)) throw bad('Set a price before publishing');
+  if (!(out.weightG > 0)) throw bad('Enter the net weight per piece (grams) — it is used for DHL shipping rates');
   delete out.updatedAt;
   return out;
 }
@@ -272,7 +273,9 @@ export function adminRoutes(r) {
     if (missing.length) return json({ ok: false, ...out, error: 'Enter your DHL API key in the box above and click “Save DHL credentials”.' });
     out.credentials = { key: true, secret: !!env.DHL_API_SECRET, accountNumber: !!env.DHL_ACCOUNT_NUMBER };
     try {
-      const rates = await carriers.dhl.rates({ env, settings, address: out.destination, boxes: packBoxes(10000, settings), declaredValueBase: 30000 });
+      const boxes = packBoxes(Math.max(100, (+b.netKg || 10) * 1000), settings);
+      out.weight = { netKg: +b.netKg || 10, shippedKg: boxes.reduce((s, x) => s + x.weight, 0), boxes: boxes.length, dimensionsSent: !!boxes[0]?.l };
+      const rates = await carriers.dhl.rates({ env, settings, address: out.destination, boxes, declaredValueBase: 30000 });
       return json({ ok: rates.length > 0, ...out, rates, ...(rates.length ? {} : { error: 'DHL answered but returned no products for this lane/date.' }) });
     } catch (e) { return json({ ok: false, error: e.message, dhlResponse: e.dhl?.body, sentToDhl: e.dhl?.request, ...out }); }
   });

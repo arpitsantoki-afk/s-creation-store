@@ -77,7 +77,7 @@ export function publicRoutes(r) {
       const token = await sign(env.SESSION_SECRET, { k: 'rate', cur, country: address.country, postcode: address.postcode, h, amount, amountBase: rt.amountBase, carrier: rt.carrier, code: rt.code, service: rt.service, eta: rt.eta || '' }, 3 * 3600);
       rates.push({ service: rt.service, eta: rt.eta || '', amount, carrier: rt.carrier, token, tax: tax.amount, taxLabel: tax.label });
     }
-    return json({ currency: cur, rates, subtotal: priced.subtotal, weightKg: +(priced.weightG / 1000).toFixed(2), boxes: q.boxes.length });
+    return json({ currency: cur, rates, subtotal: priced.subtotal, netWeightKg: +(priced.weightG / 1000).toFixed(2), weightKg: +q.boxes.reduce((s, b) => s + b.weight, 0).toFixed(2), boxes: q.boxes.length });
   });
 
   r.add('POST', '/api/checkout', async (req, env, ctx) => {

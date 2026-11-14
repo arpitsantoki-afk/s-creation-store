@@ -110,7 +110,7 @@ ${body}
       ${pageLink('shipping-returns')}${pageLink('terms')}${pageLink('privacy')}
     </ul></div>
   </div>
-  <div class="bigword" aria-hidden="true">${esc(S.store.name.toUpperCase())}</div>
+  <svg class="bigword" viewBox="0 0 1000 150" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><text x="0" y="128" textLength="1000" lengthAdjust="spacingAndGlyphs">${esc(S.store.name.toUpperCase())}</text></svg>
   <div class="bottom"><span>© ${new Date().getFullYear()} ${esc(S.store.legalName || S.store.name)} · Made in India</span><span>${esc(S.store.domain)}</span></div>
 </div></footer>
 <div class="toast" role="status" aria-live="polite"></div>

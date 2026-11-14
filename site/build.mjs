@@ -111,7 +111,7 @@ function home(ctx) {
     <div class="hero-cta"><a class="btn accent" href="${ctx.href('/products/')}">${t(lang, 'shopCollection')} →</a><a class="btn ghost" href="#how">${t(lang, 'howItWorks')}</a></div>
   </div>
   <div class="hero-art" aria-hidden="true">
-    <div class="bigword">${esc((products[0]?.line || 'S').toUpperCase())}</div>
+    <svg class="bigword" viewBox="0 0 1000 220" preserveAspectRatio="xMinYMin meet"><text x="0" y="190" textLength="1000" lengthAdjust="spacingAndGlyphs">${esc((products[0]?.line || 'S').toUpperCase())}</text></svg>
     <div class="stack">${heroP.map((p) => productImage(p)).join('')}</div>
     <div class="tag">${products.length} STYLES · ${products.reduce((n, p) => n + p.colors.length, 0)} COLOURWAYS</div>
   </div>
@@ -224,6 +224,7 @@ function productPage(ctx, p0) {
       <tr><th scope="row">${t(lang, 'colours')}</th><td>${p.colors.length}: ${esc(p.colors.map((c) => c.name).join(', '))}</td></tr>
       <tr><th scope="row">${t(lang, 'moq')}</th><td>${p.moq} ${t(lang, 'pcs')} — ${t(lang, 'why1t')}</td></tr>
       ${p.leadTime ? `<tr><th scope="row">${t(lang, 'leadTime')}</th><td>${esc(p.leadTime)}</td></tr>` : ''}
+      ${p.weightG ? `<tr><th scope="row">${t(lang, 'weight')}</th><td>${p.weightG} g / pc</td></tr>` : ''}
       ${p.hsCode ? `<tr><th scope="row">${t(lang, 'hsCode')}</th><td>${esc(p.hsCode)}</td></tr>` : ''}
     </tbody></table>
     ${p.features?.length ? `<h3 style="margin-top:36px">${t(lang, 'features')}</h3><ul class="ticks">${p.features.map((f) => `<li>${esc(f)}</li>`).join('')}</ul>` : ''}

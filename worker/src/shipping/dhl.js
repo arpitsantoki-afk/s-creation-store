@@ -52,7 +52,7 @@ export const dhl = {
       accounts: env.DHL_ACCOUNT_NUMBER ? [{ typeCode: 'shipper', number: env.DHL_ACCOUNT_NUMBER }] : undefined,
       plannedShippingDateAndTime: plannedDate(1), unitOfMeasurement: 'metric', isCustomsDeclarable: intl,
       monetaryAmount: intl ? [{ typeCode: 'declaredValue', value: Math.round(declaredValueBase), currency: settings.baseCurrency }] : undefined,
-      packages: boxes.map((b) => ({ weight: b.weight, dimensions: { length: b.l, width: b.w, height: b.h } })),
+      packages: boxes.map((b) => ({ weight: b.weight, ...(b.l ? { dimensions: { length: b.l, width: b.w, height: b.h } } : {}) })),
     });
     const allow = settings.shipping?.dhl?.productCodes || [];
     return (d.products || [])
@@ -92,7 +92,7 @@ export const dhl = {
         },
       },
       content: {
-        packages: boxes.map((b) => ({ weight: b.weight, dimensions: { length: b.l, width: b.w, height: b.h }, customerReferences: [{ value: order.number, typeCode: 'CU' }] })),
+        packages: boxes.map((b) => ({ weight: b.weight, dimensions: { length: b.l || 60, width: b.w || 40, height: b.h || 40 }, customerReferences: [{ value: order.number, typeCode: 'CU' }] })),
         isCustomsDeclarable: intl, declaredValue: intl ? +order.subtotal.toFixed(2) : undefined, declaredValueCurrency: intl ? order.currency : undefined,
         description: 'Knitted garments (polo shirts / T-shirts)', incoterm: settings.shipping?.dhl?.incoterm || 'DAP', unitOfMeasurement: 'metric',
         exportDeclaration: intl ? {

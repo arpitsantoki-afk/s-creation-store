@@ -343,11 +343,11 @@ async function viewMe() {
 // ---------- products ----------
 async function viewProducts() {
   const [{ products }, S] = await Promise.all([api('/api/admin/products'), getSettings()]);
-  shell('products', 'Products', products.length ? `<div class="wrapt"><table class="t"><thead><tr><th>Code</th><th>Product</th><th>Category</th><th>Colours</th><th class="r">MOQ</th><th class="r">Price (${S.baseCurrency})</th><th>Languages</th><th>Status</th></tr></thead><tbody>
+  shell('products', 'Products', products.length ? `<div class="wrapt"><table class="t"><thead><tr><th>Code</th><th>Product</th><th>Category</th><th>Colours</th><th class="r">MOQ</th><th class="r">Weight/pc</th><th class="r">Price (${S.baseCurrency})</th><th>Languages</th><th>Status</th></tr></thead><tbody>
     ${products.map((p) => `<tr class="click" data-href="#/products/${p.id}"><td class="mono">${esc(p.code)}</td><td><b>${esc(p.name)}</b><div class="muted" style="font-size:12px">${esc(p.fabric || '')}${p.gsm ? ' · ' + p.gsm + ' GSM' : ''}</div></td><td>${esc(p.category)}</td>
       <td>${p.colors.slice(0, 12).map((c) => `<span class="sw" style="background:${c.hex}"></span>`).join('')} <span class="muted">${p.colors.length}</span>
         <div class="muted" style="font-size:11px">${p.colors.reduce((n, c) => n + (c.images?.length || 0), 0)} photos</div></td>
-      <td class="r">${p.moq}</td><td class="r">${p.price}${p.tiers?.length ? `<div class="muted" style="font-size:11px">${p.tiers.map((t) => `${t.min}+: ${t.price}`).join(' · ')}</div>` : ''}</td>
+      <td class="r">${p.moq}</td><td class="r">${p.weightG ? p.weightG + ' g' : '<span style="color:var(--err)">missing</span>'}</td><td class="r">${p.price}${p.tiers?.length ? `<div class="muted" style="font-size:11px">${p.tiers.map((t) => `${t.min}+: ${t.price}`).join(' · ')}</div>` : ''}</td>
       <td class="mono">${['en', ...Object.keys(p.i18n || {})].join(' ')}</td><td><span class="tag ${p.status}">${p.status}</span></td></tr>`).join('')}
     </tbody></table></div>` : `<div class="card empty"><p>No products yet.</p><button class="btn accent" id="imp">Import the 6 starter products (SC-01 – SC-06)</button></div>`,
   `<a class="btn" href="#/products/new">+ New product</a>`);
@@ -367,7 +367,7 @@ async function viewProduct(id) {
   const isNew = id === 'new';
   const p = isNew ? structuredClone(BLANK) : (await api('/api/admin/products/' + id)).product;
   dirty = false;
-  const tabs = [['basics', 'Basics'], ['content', 'Content'], ['specs', 'Specs & sizes'], ['uses', 'Use cases & FAQ'], ['colours', 'Colours & photos'], ['pricing', 'Pricing & MOQ'], ['shipping', 'Shipping & customs'], ['seo', 'SEO'], ['i18n', 'Translations']];
+  const tabs = [['basics', 'Basics'], ['content', 'Content'], ['specs', 'Specs & sizes'], ['uses', 'Use cases & FAQ'], ['colours', 'Colours & photos'], ['pricing', 'Pricing, MOQ & weight'], ['shipping', 'Customs'], ['seo', 'SEO'], ['i18n', 'Translations']];
   const render = () => {
     const panes = {
       basics: `<div class="grid3">${F.text('name', 'Product name')}${F.text('line', 'Line name', { hint: 'big word, e.g. Aurum' })}${F.text('code', 'Code', { ph: 'SC-07' })}
@@ -387,19 +387,21 @@ async function viewProduct(id) {
       uses: `<h3>Use cases <span class="muted mono">who it's for — great for SEO and AI answers</span></h3>${rep('useCases', [{ k: 'title', label: 'Title' }, { k: 'text', label: 'Description', kind: 'area', wide: true, rows: 2 }], p.useCases)}
         <h3 style="margin-top:18px">Product FAQs <span class="muted mono">shown with the store FAQs, marked up as FAQPage</span></h3>${rep('faqs', [{ k: 'q', label: 'Question' }, { k: 'a', label: 'Answer', kind: 'area', wide: true, rows: 2 }], p.faqs)}`,
       colours: colourPane(p),
-      pricing: `<div class="grid3">${F.num('price', `Base unit price (${S.baseCurrency})`)}${F.num('moq', 'Minimum order (pcs per product)', { hint: 'sizes & colours mix' })}<div></div></div>
+      pricing: `<div class="grid3">${F.num('price', `Base unit price (${S.baseCurrency})`)}${F.num('moq', 'Minimum order (pcs per product)', { hint: 'sizes & colours mix' })}${F.num('weightG', 'Net weight per piece (grams)', { hint: 'weigh one garment, e.g. 260 — drives DHL rates' })}</div>
+        <p class="muted" id="wprev" style="font-size:13px"></p>
         <h3 style="margin-top:18px">Volume tiers</h3>${rep('tiers', [{ k: 'min', label: 'From qty', kind: 'num' }, { k: 'price', label: `Unit price (${S.baseCurrency})`, kind: 'num' }], p.tiers, { addLabel: 'Add tier' })}
         <h3 style="margin-top:18px">Preview in enabled currencies <span class="muted mono">rate · markup · rounding</span></h3><div id="pricePrev"></div>`,
-      shipping: `<div class="grid3">${F.num('weightG', 'Weight per piece (grams)', { hint: 'used for DHL rates & packing' })}${F.text('hsCode', 'HS code', { hint: 'customs, e.g. 6105.10' })}<div></div></div>
-        <p class="muted">Boxes are packed at max ${S.shipping.packaging.maxBoxKg} kg (${S.shipping.packaging.box.l}×${S.shipping.packaging.box.w}×${S.shipping.packaging.box.h} cm) + ${S.shipping.packaging.packagingPct}% packaging weight — change under Settings → Shipping.</p>`,
+      shipping: `<div class="grid3">${F.text('hsCode', 'HS code', { hint: 'customs, e.g. 6105.10' })}<div></div><div></div></div>
+        <p class="muted">Net weight per piece is under “Pricing, MOQ & weight”. Boxes are packed at max ${S.shipping.packaging.maxBoxKg} kg + ${S.shipping.packaging.packagingPct}% packaging weight (Settings → Shipping).</p>`,
       seo: `<div class="stack">${F.text('seo.title', 'SEO title', { hint: `<span id="tlen"></span> · aim for 50–60 characters` })}${F.area('seo.description', 'Meta description', { rows: 3, hint: '<span id="dlen"></span> · aim for 140–160 characters' })}
         <div class="card" style="border-style:dashed"><div class="mono muted">Google preview</div><div id="serp" style="font-family:arial;margin-top:8px"></div></div></div>`,
       i18n: i18nPane(p, S),
     };
     $('#pedit').innerHTML = `<div class="tabs">${tabs.map(([k, n]) => `<button data-tab="${k}" class="${ptab === k ? 'on' : ''}">${n}</button>`).join('')}</div><div id="pane">${panes[ptab]}</div>`;
-    bind($('#pane'), p, (k) => { if (ptab === 'pricing') pricePreview(p, S); if (ptab === 'seo') serp(p, S); if (k.startsWith('colors.') && k.endsWith('.name')) {} });
+    const wp = () => { const el = $('#wprev'); if (!el) return; const pk = S.shipping.packaging; const kg = (p.weightG || 0) * p.moq / 1000; el.textContent = p.weightG ? `At the minimum order (${p.moq} pcs): net ${kg.toFixed(2)} kg → shipped weight ≈ ${(kg * (1 + (pk.packagingPct ?? 6) / 100)).toFixed(2)} kg incl. ${pk.packagingPct ?? 6}% packaging.` : 'Enter the weight of one garment in grams.'; };
+    bind($('#pane'), p, (k) => { wp(); if (ptab === 'pricing') pricePreview(p, S); if (ptab === 'seo') serp(p, S); if (k.startsWith('colors.') && k.endsWith('.name')) {} });
     $$('[data-tab]').forEach((b) => (b.onclick = () => { ptab = b.dataset.tab; render(); }));
-    if (ptab === 'pricing') pricePreview(p, S);
+    if (ptab === 'pricing') { pricePreview(p, S); wp(); }
     if (ptab === 'seo') serp(p, S);
     if (ptab === 'colours') wireColours(p, render);
     if (ptab === 'i18n') wireI18n(p, render);
@@ -589,9 +591,12 @@ async function viewSettings() {
             <label class="f">DHL account number <small>optional · <span id="h_DHL_ACCOUNT_NUMBER"></span></small><input class="i" autocomplete="off" data-sec="DHL_ACCOUNT_NUMBER" placeholder="e.g. 123456789"></label></div>
             <div class="row" style="margin-top:10px"><button class="btn sm" data-savesec>Save DHL credentials</button><button class="btn ghost sm" data-clearsec>Remove</button><span class="muted" style="font-size:12px">Stored securely; never shown again after saving.</span></div></div>
           <p class="muted" style="font-size:12px">Untick “Use DHL test environment” if your key is for live/production, then Save settings before testing.</p>
-          <div class="row" style="margin-top:8px"><input class="i" id="dhlc" value="US" style="width:70px" title="Country"><input class="i" id="dhlp" value="10001" style="width:110px" title="Postcode"><input class="i" id="dhlcity" value="New York" style="width:160px" title="City"><button class="btn sm" data-dhltest>Test DHL connection</button></div>
+          <div class="row" style="margin-top:8px"><input class="i" id="dhlc" value="US" style="width:70px" title="Country"><input class="i" id="dhlp" value="10001" style="width:110px" title="Postcode"><input class="i" id="dhlcity" value="New York" style="width:160px" title="City"><input class="i" id="dhlkg" value="10" style="width:90px" title="Net weight (kg)"><span class="muted">kg</span><button class="btn sm" data-dhltest>Test DHL connection</button></div>
           <pre id="dhlout" style="white-space:pre-wrap;font-size:12px;background:#faf9f7;border:1px solid var(--line);padding:10px;margin-top:10px;max-height:320px;overflow:auto" hidden></pre></div>
-        <div class="card"><h2>Packing</h2><div class="grid4">${F.num('shipping.packaging.maxBoxKg', 'Max kg per box')}${F.num('shipping.packaging.box.l', 'Box L (cm)')}${F.num('shipping.packaging.box.w', 'Box W (cm)')}${F.num('shipping.packaging.box.h', 'Box H (cm)')}${F.num('shipping.packaging.packagingPct', 'Packaging weight %')}</div></div>
+        <div class="card"><h2>Packing</h2><p class="muted" style="font-size:13px;margin-top:0">Shipping weight = Σ (net weight per piece × qty) + packaging %, split into boxes of up to the max kg.</p>
+          <div class="grid4">${F.num('shipping.packaging.maxBoxKg', 'Max kg per box')}${F.num('shipping.packaging.packagingPct', 'Packaging weight %')}</div>
+          <div style="margin-top:12px">${F.bool('shipping.packaging.sendDimensions', 'Also send box size to DHL (rates then include volumetric weight)')}</div>
+          <div class="grid4" style="margin-top:10px">${F.num('shipping.packaging.box.l', 'Box L (cm)')}${F.num('shipping.packaging.box.w', 'Box W (cm)')}${F.num('shipping.packaging.box.h', 'Box H (cm)')}</div></div>
         <div class="card"><h2>Fallback zone rates <span class="muted mono">used when DHL is off or has no rate</span></h2>${F.bool('shipping.manual.enabled', 'Enabled')}
           <div style="margin-top:10px">${rep('shipping.manual.zones', [{ k: 'name', label: 'Zone' }, { k: 'countries', label: 'Countries (ISO, * = rest)', kind: 'csv', upper: true, wide: true }, { k: 'base', label: `Base (${S.baseCurrency})`, kind: 'num' }, { k: 'perKg', label: 'Per kg', kind: 'num' }, { k: 'days', label: 'Delivery time' }], S.shipping.manual.zones, { addLabel: 'Add zone' })}</div></div>`,
       tax: `<p class="muted">Tax is added on goods at checkout for orders shipped to these countries. For exports from India (DAP), import VAT/duty is collected by DHL from the buyer, so other countries are usually left out.</p>
@@ -626,8 +631,8 @@ async function viewSettings() {
     }
     const dt = $('[data-dhltest]'); if (dt) dt.onclick = async () => {
       const o = $('#dhlout'); o.hidden = false; o.textContent = 'Asking DHL…';
-      try { const d = await api('/api/admin/shipping/test', { method: 'POST', body: { test: S.shipping?.dhl?.test !== false, country: $('#dhlc').value, postcode: $('#dhlp').value, city: $('#dhlcity').value } });
-        o.textContent = (d.ok ? '✓ DHL is working — ' + d.rates.map((r) => `${r.service}: ${r.amountCurrency} ${r.amount}`).join(' · ') : '✗ ' + d.error) + '\n\n' + JSON.stringify(d, null, 2); }
+      try { const d = await api('/api/admin/shipping/test', { method: 'POST', body: { test: S.shipping?.dhl?.test !== false, country: $('#dhlc').value, postcode: $('#dhlp').value, city: $('#dhlcity').value, netKg: +$('#dhlkg').value || 10 } });
+        o.textContent = (d.weight ? `Net ${d.weight.netKg} kg → shipped ${d.weight.shippedKg.toFixed(2)} kg in ${d.weight.boxes} box(es)${d.weight.dimensionsSent ? ' (box size sent)' : ''}\n` : '') + (d.ok ? '✓ DHL is working — ' + d.rates.map((r) => `${r.service}: ${r.amountCurrency} ${r.amount}`).join(' · ') : '✗ ' + d.error) + '\n\n' + JSON.stringify(d, null, 2); }
       catch (e) { o.textContent = '✗ ' + e.message; }
     };
     const fxb = $('[data-fx]'); if (fxb) fxb.onclick = async () => { try { fxCache = (await api('/api/admin/fx/refresh', { method: 'POST' })).fx; toast('Rates refreshed'); render(); } catch (e) { toast(e.message, true); } };

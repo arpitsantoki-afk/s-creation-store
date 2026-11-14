@@ -211,7 +211,7 @@ async function initCheckout(root) {
     Object.assign(saved, { email: me.email, name: saved.name || me.name, phone: saved.phone || me.phone, company: saved.company || me.company, taxId: saved.taxId || me.taxId });
     if (def && !saved.line1) Object.assign(saved, { line1: def.line1, line2: def.line2, city: def.city, state: def.state, postcode: def.postcode, country: def.country, name: def.name || saved.name, company: def.company || saved.company, phone: def.phone || saved.phone });
   }
-  let rates = [], rate = null;
+  let rates = [], rate = null, shipWeight = null;
   const field = (n, label, attrs = '') => `<label>${label}<input name="${n}" value="${esc(saved[n] || '')}" ${attrs}></label>`;
   const addrPick = me?.addresses?.length > 1 ? `<label>${t(lang, 'savedAddress')}<select data-pick><option value="">${t(lang, 'useNew')}</option>${me.addresses.map((a, i) => `<option value="${i}"${a.line1 === saved.line1 ? ' selected' : ''}>${esc([a.label, a.line1, a.city, a.country].filter(Boolean).join(' · '))}</option>`).join('')}</select></label>` : '';
   root.innerHTML = `<div class="cartgrid"><form class="form" data-co novalidate>
@@ -247,7 +247,7 @@ async function initCheckout(root) {
     $('[data-sum]', root).innerHTML = `<h2 style="font-size:22px">${t(lang, 'yourCart')}</h2>
       ${p.groups.map((g) => `<div class="row"><span>${esc(g.name)} × ${g.qty}</span><span>${money(g.total)}</span></div>${g.meetsMoq ? '' : `<div class="warnbox">${t(lang, 'belowMoq', { n: g.moq - g.qty })}</div>`}`).join('')}
       <div class="row" style="border-top:1px solid var(--line);margin-top:8px;padding-top:12px"><span>${t(lang, 'subtotal')}</span><b>${money(p.subtotal)}</b></div>
-      <div class="row"><span>${t(lang, 'shipping')}</span><span>${ship == null ? '—' : money(ship)}</span></div>
+      <div class="row"><span>${t(lang, 'shipping')}${shipWeight && rate ? `<br><small class="muted">${shipWeight.weightKg} kg</small>` : ''}</span><span>${ship == null ? '—' : money(ship)}</span></div>
       ${tax ? `<div class="row"><span>${esc(rate.taxLabel || t(lang, 'tax'))}</span><span>${money(tax)}</span></div>` : ''}
       <div class="row total"><span>${t(lang, 'total')}</span><span>${money(+(p.subtotal + (ship || 0) + tax).toFixed(2))}</span></div>
       <p class="mono muted" style="margin-top:12px;font-size:11px">${t(lang, 'pricesIn')} ${curOrBase()}</p>`;
@@ -266,7 +266,7 @@ async function initCheckout(root) {
     out.innerHTML = `<p class="muted">${t(lang, 'processing')}</p>`;
     try {
       const d = await api('/api/shipping/rates', { method: 'POST', body: { items, currency: curOrBase(), address: { country: v.country, postcode: v.postcode, city: v.city, state: v.state, line1: v.line1 } } });
-      rates = d.rates || [];
+      rates = d.rates || []; shipWeight = d;
       if (!rates.length) throw new Error('No shipping options for this address.');
       out.innerHTML = `<div style="margin-top:6px">${rates.map((r, i) => `<label class="opt"><input type="radio" name="rate" value="${i}"${i === 0 ? ' checked' : ''}><span class="grow"><b>${esc(r.service)}</b><div class="sub">${esc(r.eta || '')}</div></span><b>${money(r.amount)}</b></label>`).join('')}</div>`;
       rate = rates[0]; drawSum();
