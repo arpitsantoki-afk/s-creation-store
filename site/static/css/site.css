@@ -418,10 +418,16 @@ html, body { overflow-x: clip; }
 .hs-bars .hold i::after { animation-play-state: paused; }
 @keyframes hsbar { to { transform: scaleX(1); } }
 @media (max-width: 900px) {
-  .hero-show { min-height: 0; aspect-ratio: 4/5; max-height: 86vh; }
-  .hero-show .hs-card { left: 16px; bottom: 68px; padding: 14px 16px 12px; box-shadow: 4px 4px 0 var(--ink); }
-  .hs-name { font-size: 36px; }
-  .hs-nav { left: 16px; right: 16px; bottom: 16px; }
-  .hero-show .tag { right: 16px; top: 16px; padding: 8px 10px; font-size: 11px; }
+  /* Phones: photo on top, info card below it — nothing covers the model */
+  .hero-show { min-height: 0; height: calc(min(125vw, 70vh) + 196px); }
+  .hero-show .hs-img { bottom: 196px; }
+  .hero-show .hs-card { left: 0; right: 0; bottom: 0; width: auto; height: 196px; border: 0; border-top: 1.5px solid var(--ink); box-shadow: none; padding: 14px var(--pad) 12px; transform: none; }
+  .hs-name { font-size: 34px; margin: 4px 0 2px; }
+  .hs-type { margin-bottom: 10px; }
+  .hs-sw { margin-bottom: 10px; flex-wrap: nowrap; overflow: hidden; }
+  .hs-foot { padding-top: 10px; }
+  .hs-nav { left: 12px; right: 12px; bottom: 208px; }
+  .hs-arrow { width: 32px; height: 32px; }
+  .hero-show .tag { right: 12px; top: 12px; padding: 7px 9px; font-size: 10px; }
 }
 @media (prefers-reduced-motion: reduce) { .hero-show .hs, .hero-show .hs-img img, .hero-show .hs-card { transition: none; transform: none; } }
