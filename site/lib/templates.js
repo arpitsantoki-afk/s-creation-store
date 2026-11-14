@@ -1,5 +1,6 @@
 import { esc, md, plain, garmentSVG } from './util.js';
 import { t, LANG_NAMES, LOCALES } from './i18n.js';
+import { imgTag } from '../../shared/img.js';
 
 /** Context passed to every template: { S (settings), lang, langs, base, href(), url(), fileLinks } */
 
@@ -18,9 +19,9 @@ export function locPage(pg, lang) {
   return { ...pg, ...pg.i18n[lang], _translated: true };
 }
 
-export const productImage = (p, color, cls = '') => {
+export const productImage = (p, color, cls = '', { sizes = '(max-width: 700px) 90vw, (max-width: 1100px) 45vw, 30vw', eager = false } = {}) => {
   const c = color || p.colors.find((c) => c.name === p.heroColor) || p.colors[0] || {};
-  if (c.images?.length) return `<img src="${esc(c.images[0])}" alt="${esc(p.name)} in ${esc(c.name)}" loading="lazy" decoding="async" class="${cls}">`;
+  if (c.images?.length) return imgTag(c.images[0], { alt: `${p.name} in ${c.name}`, sizes, eager, cls });
   return garmentSVG(p.type, c.hex, c.hex2, cls);
 };
 
@@ -30,7 +31,8 @@ export const fmtBase = (v, S) => new Intl.NumberFormat('en-IN', { style: 'curren
 export function layout(ctx, { title, description, path, body, jsonld = [], alternates = null, canonical = null, noindex = false, ogImage = null, pageClass = '' }) {
   const { S, lang } = ctx;
   const site = S.store.siteUrl.replace(/\/$/, '');
-  const canon = canonical || site + ctx.url(path, lang, true);
+  const origin = ctx.base && site.endsWith(ctx.base) ? site.slice(0, -ctx.base.length) : site;
+  const canon = canonical || origin + ctx.url(path, lang, true);
   const alts = alternates ?? ctx.langs;
   const og = ogImage ? (ogImage.startsWith('http') ? ogImage : site + ogImage) : site + S.seo.ogImage;
   const navActive = (p) => (path === p ? ' aria-current="page"' : '');
@@ -50,8 +52,8 @@ export function layout(ctx, { title, description, path, body, jsonld = [], alter
 <meta name="description" content="${esc(description)}">
 ${noindex ? '<meta name="robots" content="noindex,follow">' : '<meta name="robots" content="index,follow,max-image-preview:large">'}
 <link rel="canonical" href="${esc(canon)}">
-${noindex ? '' : alts.map((l) => `<link rel="alternate" hreflang="${l}" href="${esc(site + ctx.url(path, l, true))}">`).join('\n')}
-${noindex || !alts.includes(S.languages.default) ? '' : `<link rel="alternate" hreflang="x-default" href="${esc(site + ctx.url(path, S.languages.default, true))}">`}
+${noindex ? '' : alts.map((l) => `<link rel="alternate" hreflang="${l}" href="${esc(origin + ctx.url(path, l, true))}">`).join('\n')}
+${noindex || !alts.includes(S.languages.default) ? '' : `<link rel="alternate" hreflang="x-default" href="${esc(origin + ctx.url(path, S.languages.default, true))}">`}
 <meta property="og:type" content="${pageClass === 'page-pdp' ? 'product' : 'website'}">
 <meta property="og:site_name" content="${esc(S.store.name)}">
 <meta property="og:title" content="${esc(title)}">

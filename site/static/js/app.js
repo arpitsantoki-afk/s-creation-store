@@ -2,6 +2,7 @@
 import { convert, format, tierPrice, priceCart } from './pricing.js';
 import { t, LOCALES } from './lib/i18n.js';
 import { garmentSVG, esc } from './lib/util.js';
+import { imgTag } from './img.js';
 
 const SC = window.SC || {};
 const lang = document.body.dataset.lang || 'en';
@@ -112,8 +113,8 @@ function initPDP() {
     $('[data-colname]').textContent = name;
     $('[data-shown]').textContent = `${t(lang, 'shownIn')} — ${name}`;
     $$('.sw', root).forEach((b) => b.setAttribute('aria-pressed', b.dataset.color === name));
-    $('[data-main]').innerHTML = c.images?.length ? `<img src="${esc(c.images[imgIdx])}" alt="${esc(P.name)} – ${esc(name)}">` : garmentSVG(P.type, c.hex, c.hex2);
-    $('[data-thumbs]').innerHTML = (c.images || []).length > 1 ? c.images.map((u, i) => `<button type="button" aria-pressed="${i === imgIdx}" data-img="${i}"><img src="${esc(u)}" alt="" loading="lazy"></button>`).join('') : '';
+    $('[data-main]').innerHTML = c.images?.length ? imgTag(c.images[imgIdx], { alt: `${P.name} in ${name} – view ${imgIdx + 1}`, sizes: '(max-width: 980px) 92vw, 50vw', eager: true }) : garmentSVG(P.type, c.hex, c.hex2);
+    $('[data-thumbs]').innerHTML = (c.images || []).length > 1 ? c.images.map((u, i) => `<button type="button" aria-pressed="${i === imgIdx}" data-img="${i}">${imgTag(u, { alt: '', sizes: '96px', thumb: true })}</button>`).join('') : '';
     inputs.forEach((inp) => { const v = qty[name]?.[inp.dataset.size] || ''; inp.value = v || ''; inp.classList.toggle('has', !!v); });
   };
   $('[data-thumbs]').addEventListener('click', (e) => { const b = e.target.closest('[data-img]'); if (b) showColor(color, +b.dataset.img); });
@@ -163,7 +164,7 @@ async function initCartPage(root) {
       const p = products.find((x) => x.id === g.productId);
       const c0 = p.colors.find((c) => c.name === g.lines[0].color) || p.colors[0];
       return `<section class="cgroup" data-pid="${p.id}">
-        <header><div class="thumb">${c0.image ? `<img src="${esc(c0.image)}" alt="">` : garmentSVG(p.type, c0.hex, c0.hex2)}</div>
+        <header><div class="thumb">${c0.image ? imgTag(c0.image, { alt: '', sizes: '96px', thumb: true }) : garmentSVG(p.type, c0.hex, c0.hex2)}</div>
           <div style="flex:1"><div class="mono muted">${esc(p.code)}</div><h3>${esc(p.i18n?.[lang]?.name || p.name)}</h3><div class="muted" style="font-size:14px">${money(g.unit)} ${t(lang, 'perPc')} · ${t(lang, 'moq')} ${g.moq}</div></div>
           <a class="btn ghost sm" href="${href('/products/' + p.slug + '/')}">${t(lang, 'edit')}</a></header>
         <table><thead><tr><th>${t(lang, 'colour')}</th><th>${t(lang, 'size')}</th><th class="r">${t(lang, 'qty')}</th><th class="r">${t(lang, 'total')}</th><th></th></tr></thead><tbody>

@@ -7,6 +7,7 @@ import { gateways } from '../payments/index.js';
 import { requireAdmin, adminToken, ROLES, googleConfigured } from '../lib/auth.js';
 import { ensureInvoiceNo, invoicePdf, packingSlipPdf } from '../lib/documents.js';
 import { b64 } from '../lib/services.js';
+import repoPhotos from '../../../content/photos.json';
 import { CARRIERS } from '../../../shared/carriers.js';
 
 const STATUSES = ['pending_payment', 'paid', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded'];
@@ -193,32 +194,51 @@ export function adminRoutes(r) {
     return json({ imported: n });
   });
 
+  // Link photos produced by scripts/optimize-images.mjs (content/photos.json) to product colours.
+  A('POST', '/api/admin/import-photos', 'products', async (req, env) => {
+    const site = (env.SITE_URL || (await getSettings(env)).store.siteUrl || '').replace(/\/$/, '');
+    let colours = 0, photos = 0;
+    for (const [id, cols] of Object.entries(repoPhotos || {})) {
+      const p = await getProduct(env, id); if (!p) continue;
+      let changed = false;
+      for (const c of p.colors || []) {
+        const urls = cols[c.name]; if (!urls?.length) continue;
+        c.images = urls.map((u) => (u.startsWith('http') ? u : site + u)); colours++; photos += urls.length; changed = true;
+      }
+      if (changed) await saveProduct(env, p);
+    }
+    return json({ colours, photos });
+  });
+
   // ---- media (R2) ----
   A('POST', '/api/admin/media', 'products', async (req, env) => {
     if (!env.MEDIA && !(env.GITHUB_TOKEN && env.GITHUB_REPO)) throw bad('Photo storage is not set up: add the PUBLISH_TOKEN GitHub secret (photos are stored in your GitHub repo) or enable Cloudflare R2, then re-run “Deploy API worker”.');
     const fd = await req.formData();
-    const file = fd.get('file');
-    if (!file || typeof file === 'string') throw bad('No file');
-    if (!/^image\/(webp|jpeg|png|avif|gif|svg\+xml)$/.test(file.type)) throw bad('Images only (WebP, JPEG, PNG, AVIF)');
-    if (file.size > 8 * 1024 * 1024) throw bad('Max 8 MB per image');
+    const files = fd.getAll('file').filter((f) => f && typeof f !== 'string');
+    if (!files.length) throw bad('No file');
+    if (files.length > 40) throw bad('Too many files in one upload (max 40)');
     const folder = slugify(fd.get('folder') || 'misc') || 'misc';
-    const ext = { 'image/webp': 'webp', 'image/jpeg': 'jpg', 'image/png': 'png', 'image/avif': 'avif', 'image/gif': 'gif', 'image/svg+xml': 'svg' }[file.type];
-    const name = slugify(String(file.name || '').replace(/\.[^.]+$/, '')).slice(0, 40) || 'img';
-    const key = `products/${folder}/${name}-${uid(4)}.${ext}`;
-    if (env.MEDIA) {
-      await env.MEDIA.put(key, file.stream(), { httpMetadata: { contentType: file.type } });
-      return json({ key, url: `${env.API_URL}/media/${key}` });
+    const EXT = { 'image/webp': 'webp', 'image/jpeg': 'jpg', 'image/png': 'png', 'image/avif': 'avif', 'image/gif': 'gif', 'image/svg+xml': 'svg' };
+    const out = [];
+    for (const file of files) {
+      if (!EXT[file.type]) throw bad('Images only (WebP, JPEG, PNG, AVIF)');
+      if (file.size > 8 * 1024 * 1024) throw bad('Max 8 MB per image');
+      const raw = String(file.name || '').toLowerCase();
+      // Pipeline files arrive already optimised and SEO-named: <product>-<colour>-<view>-<W>x<H>.webp
+      const name = /^[a-z0-9]+(?:-[a-z0-9]+)*-\d{2,4}x\d{2,4}\.webp$/.test(raw) && file.type === 'image/webp'
+        ? raw : `${slugify(raw.replace(/\.[^.]+$/, '')).slice(0, 40) || 'img'}-${uid(4)}.${EXT[file.type]}`;
+      out.push({ file, key: `products/${folder}/${name}` });
     }
-    // Free-plan option: commit the image to the site repo; it is served by GitHub Pages after the rebuild.
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    const path = `site/static/uploads/${key}`;
-    const r = await fetch(`https://api.github.com/repos/${env.GITHUB_REPO}/contents/${path}`, {
-      method: 'PUT', headers: { authorization: `Bearer ${env.GITHUB_TOKEN}`, accept: 'application/vnd.github+json', 'user-agent': 'screation-worker', 'content-type': 'application/json' },
-      body: JSON.stringify({ message: `Upload product photo ${key}`, content: b64(bytes), branch: 'main' }),
-    });
-    if (!r.ok) throw bad(`GitHub upload failed (${r.status}): ${(await r.text()).slice(0, 200)}`);
-    const site = ((await getSettings(env)).store.siteUrl || env.SITE_URL).replace(/\/$/, '');
-    return json({ key, url: `${(env.SITE_URL || site).replace(/\/$/, '')}/assets/uploads/${key}`, pending: true });
+    if (env.MEDIA) {
+      for (const o of out) await env.MEDIA.put(o.key, o.file.stream(), { httpMetadata: { contentType: o.file.type, cacheControl: 'public, max-age=31536000' } });
+      const files = out.map((o) => ({ key: o.key, url: `${env.API_URL}/media/${o.key}` }));
+      return json({ files, key: files[0].key, url: files[0].url });
+    }
+    // Free-plan option: commit all images to the site repo in ONE commit; GitHub Pages serves them after the rebuild.
+    await commitFiles(env, out.map((o) => ({ path: `site/static/uploads/${o.key}`, file: o.file })), `Product photos: ${folder} (${out.length} files)`);
+    const site = ((await getSettings(env)).store.siteUrl || env.SITE_URL || '').replace(/\/$/, '');
+    const files2 = out.map((o) => ({ key: o.key, url: `${(env.SITE_URL || site).replace(/\/$/, '')}/assets/uploads/${o.key}` }));
+    return json({ files: files2, key: files2[0].key, url: files2[0].url, pending: true });
   });
   A('GET', '/api/admin/media', 'products', async (req, env) => {
     const prefix = new URL(req.url).searchParams.get('prefix') || 'products/';
@@ -439,4 +459,23 @@ export function adminRoutes(r) {
 function summary(o) {
   return { id: o.id, number: o.number, status: o.status, createdAt: o.createdAt, email: o.customer?.email, name: o.customer?.name, company: o.customer?.company,
     country: o.address?.country, currency: o.currency, total: o.total, qty: o.groups?.reduce((s, g) => s + g.qty, 0), gateway: o.gateway, tracking: o.shipment?.tracking || o.tracking || null, account: !!o.customerId };
+}
+
+// Commit several binary files to the repo as a single commit (Git Data API).
+async function commitFiles(env, items, message) {
+  const gh = (p, init = {}) => fetch(`https://api.github.com/repos/${env.GITHUB_REPO}/${p}`, { ...init, headers: { authorization: `Bearer ${env.GITHUB_TOKEN}`, accept: 'application/vnd.github+json', 'user-agent': 'screation-worker', 'content-type': 'application/json' } })
+    .then(async (r) => { if (!r.ok) throw bad(`GitHub upload failed (${r.status}): ${(await r.text()).slice(0, 200)}`); return r.json(); });
+  const blobs = [];
+  for (const it of items) {
+    const b = await gh('git/blobs', { method: 'POST', body: JSON.stringify({ content: b64(new Uint8Array(await it.file.arrayBuffer())), encoding: 'base64' }) });
+    blobs.push({ path: it.path, mode: '100644', type: 'blob', sha: b.sha });
+  }
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const ref = await gh('git/ref/heads/main');
+    const parent = await gh(`git/commits/${ref.object.sha}`);
+    const tree = await gh('git/trees', { method: 'POST', body: JSON.stringify({ base_tree: parent.tree.sha, tree: blobs }) });
+    const commit = await gh('git/commits', { method: 'POST', body: JSON.stringify({ message, tree: tree.sha, parents: [ref.object.sha] }) });
+    try { await gh('git/refs/heads/main', { method: 'PATCH', body: JSON.stringify({ sha: commit.sha }) }); return; }
+    catch (e) { if (attempt === 2) throw e; } // someone pushed in between — retry on the new head
+  }
 }

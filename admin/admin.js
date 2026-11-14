@@ -1,5 +1,6 @@
 // S Creation dashboard — single-page app talking to the Worker API.
 import { CARRIERS, trackingUrl } from '../assets/js/carriers.js';
+import { variantSizes, seoName, imgInfo, QUALITY } from '../assets/js/img.js';
 const API = (localStorage.getItem('sc_admin_api') || window.SC?.api || '').replace(/\/$/, '');
 const SITE = (window.SC?.base || '');
 const app = document.getElementById('app');
@@ -350,7 +351,8 @@ async function viewProducts() {
       <td class="r">${p.moq}</td><td class="r">${p.weightG ? p.weightG + ' g' : '<span style="color:var(--err)">missing</span>'}</td><td class="r">${p.price}${p.tiers?.length ? `<div class="muted" style="font-size:11px">${p.tiers.map((t) => `${t.min}+: ${t.price}`).join(' · ')}</div>` : ''}</td>
       <td class="mono">${['en', ...Object.keys(p.i18n || {})].join(' ')}</td><td><span class="tag ${p.status}">${p.status}</span></td></tr>`).join('')}
     </tbody></table></div>` : `<div class="card empty"><p>No products yet.</p><button class="btn accent" id="imp">Import the 6 starter products (SC-01 – SC-06)</button></div>`,
-  `<a class="btn" href="#/products/new">+ New product</a>`);
+  `<button class="btn ghost" id="attach" title="Link photos optimised into the repo (content/photos.json) to the matching product colours">Attach repo photos</button><a class="btn" href="#/products/new">+ New product</a>`);
+  $('#attach').onclick = async () => { try { const d = await api('/api/admin/import-photos', { method: 'POST' }); toast(d.colours ? `Attached ${d.photos} photos to ${d.colours} colours — press “Publish site” to go live.` : 'No repo photos to attach yet.'); viewProducts(); } catch (ex) { toast(ex.message, true); } };
   const imp = $('#imp');
   if (imp) imp.onclick = async () => { const d = await api('/api/admin/import-starter', { method: 'POST' }); toast(`Imported ${d.imported} products`); viewProducts(); };
 }
@@ -425,40 +427,76 @@ async function viewProduct(id) {
 }
 
 function colourPane(p) {
-  return `<p class="muted">Upload transparent cut-out PNGs or photos per colour — they're converted to WebP (max 1600 px) in your browser before upload. First image = main image. Drag files onto a colour or click +.</p>
+  return `<p class="muted">Upload photos per colour (PNG, JPEG or WebP). Each one is optimised automatically before upload: WebP in 400/800/1200/1600 px sizes, metadata stripped, SEO file name like <code>${esc(seoName(p.slug || p.name || 'product', 'colour', 1))}-1200x1500.webp</code>. Name the colour first. First image = main image. Drag files onto a colour or click +.</p>
   <div class="colors">${p.colors.map((c, i) => `<div class="color" data-ci="${i}">
     <div class="head">${F.color(`colors.${i}.hex`)}<input class="i" data-k="colors.${i}.name" placeholder="Colour name">
       <label class="check mono" title="Second colour for two-tone"><input type="checkbox" data-twotone="${i}" ${c.hex2 ? 'checked' : ''}> 2-tone</label>
       ${c.hex2 ? F.color(`colors.${i}.hex2`) : '<span></span>'}
       <div class="row" style="gap:4px"><button class="iconbtn" data-cup="${i}" title="Move up">↑</button><button class="iconbtn" data-cdel="${i}" title="Remove colour">✕</button></div></div>
-    <div class="imgs">${(c.images || []).map((u, j) => `<div class="im"><img src="${esc(localPreviews[u] || u)}" alt="" loading="lazy" onerror="this.style.opacity=.25;this.title='Appears after the next site build'"><div class="ctl"><button data-imleft="${i}:${j}" title="Move left">←</button><button data-imdel="${i}:${j}" title="Remove">✕</button></div></div>`).join('')}
+    <div class="imgs">${(c.images || []).map((u, j) => `<div class="im"><img src="${esc(localPreviews[u] || imgInfo(u)?.smallest || u)}" alt="" loading="lazy" onerror="this.style.opacity=.25;this.title='Appears after the next site build'"><div class="ctl"><button data-imleft="${i}:${j}" title="Move left">←</button><button data-imdel="${i}:${j}" title="Remove">✕</button></div></div>`).join('')}
       <label class="drop" data-drop="${i}">+ Add photos<input type="file" accept="image/*" multiple hidden data-file="${i}"></label></div></div>`).join('')}</div>
   <div class="row" style="margin-top:12px"><button class="btn ghost" data-cadd>+ Add colour</button><span class="muted" id="upmsg"></span></div>`;
 }
 const localPreviews = {}; let pendingNote = false;
-async function toWebp(file) {
-  if (file.type === 'image/svg+xml') return file;
-  const bmp = await createImageBitmap(file);
-  const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
-  const cv = Object.assign(document.createElement('canvas'), { width: Math.round(bmp.width * scale), height: Math.round(bmp.height * scale) });
-  cv.getContext('2d').drawImage(bmp, 0, 0, cv.width, cv.height);
-  const blob = await new Promise((r) => cv.toBlob(r, 'image/webp', 0.86));
-  return new File([blob], file.name.replace(/\.[^.]+$/, '') + '.webp', { type: 'image/webp' });
+// Image pipeline (runs in the browser, free): resize to 400/800/1200/1600 px WebP, strip metadata,
+// SEO filename <product>-<colour>-<view>-<W>x<H>.webp. The storefront serves them with srcset.
+async function optimisePhoto(file, base) {
+  let bmp;
+  try { bmp = await createImageBitmap(file); } catch { throw new Error('this file type can’t be read — use PNG, JPEG or WebP'); }
+  const out = [];
+  for (const s of variantSizes(bmp.width, bmp.height)) {
+    let src = bmp, w = bmp.width, h = bmp.height;
+    while (w / 2 >= s.w) { // step down in halves for sharper results
+      const c = Object.assign(document.createElement('canvas'), { width: Math.round(w / 2), height: Math.round(h / 2) });
+      const x = c.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(src, 0, 0, c.width, c.height); src = c; w = c.width; h = c.height;
+    }
+    const cv = Object.assign(document.createElement('canvas'), { width: s.w, height: s.h });
+    const ctx = cv.getContext('2d'); ctx.imageSmoothingQuality = 'high'; ctx.drawImage(src, 0, 0, s.w, s.h);
+    const blob = await new Promise((r) => cv.toBlob(r, 'image/webp', QUALITY));
+    if (!blob || blob.type !== 'image/webp') throw new Error('this browser can’t create WebP images — please upload from Chrome, Edge or Firefox');
+    out.push(new File([blob], `${base}-${s.w}x${s.h}.webp`, { type: 'image/webp' }));
+  }
+  return out; // largest last
 }
+const nextView = (imgs) => 1 + Math.max(0, ...(imgs || []).map((u) => +(/-(\d+)-\d+x\d+\.webp/.exec(u)?.[1] || 0)), (imgs || []).length);
+const kb = (n) => n > 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.round(n / 1024) + ' KB';
 function wireColours(p, render) {
   const pane = $('#pane');
   const upload = async (ci, files) => {
-    const msg = $('#upmsg');
-    for (const [n, f] of [...files].entries()) {
-      msg.textContent = `Uploading ${n + 1}/${files.length}…`;
+    const msg = $('#upmsg'); const col = p.colors[ci];
+    if (!col.name) return toast('Name the colour first — it is used in the photo file names (SEO).', true);
+    const list = [...files].filter((f) => f.type.startsWith('image/'));
+    let before = 0, after = 0, done = 0;
+    for (let k = 0; k < list.length; k += 6) { // up to 6 photos per upload request (one commit)
+      const fd = new FormData(); fd.append('folder', p.slug || p.name || 'product');
+      const batch = [];
+      for (const f of list.slice(k, k + 6)) {
+        msg.textContent = `Optimising ${done + batch.length + 1}/${list.length}…`;
+        try {
+          if (f.type === 'image/svg+xml') { fd.append('file', f); batch.push({ f, main: f.name }); continue; }
+          const base = seoName(p.slug || p.name, col.name, nextView([...(col.images || []), ...batch.map((b) => b.main)]));
+          const vs = await optimisePhoto(f, base);
+          vs.forEach((v) => fd.append('file', v));
+          before += f.size; after += vs[vs.length - 1].size;
+          batch.push({ f, main: vs[vs.length - 1].name });
+        } catch (e) { toast(`${f.name}: ${e.message}`, true); }
+      }
+      if (!batch.length) continue;
+      msg.textContent = `Uploading ${done + 1}–${done + batch.length} of ${list.length}…`;
       try {
-        const fd = new FormData(); fd.append('file', await toWebp(f)); fd.append('folder', p.slug || p.name || 'product');
         const d = await api('/api/admin/media', { method: 'POST', body: fd });
-        (p.colors[ci].images ||= []).push(d.url); dirty = true;
-        if (d.pending) { localPreviews[d.url] = URL.createObjectURL(f); pendingNote = true; }
-      } catch (e) { toast(`${f.name}: ${e.message}`, true); }
+        for (const b of batch) {
+          const hit = (d.files || [d]).find((x) => x.key.endsWith('/' + b.main.toLowerCase())) || (d.files || [d]).find((x) => x.key.includes(b.main.replace(/\.[^.]+$/, '').toLowerCase()));
+          if (!hit) continue;
+          (col.images ||= []).push(hit.url); dirty = true;
+          if (d.pending) { localPreviews[hit.url] = URL.createObjectURL(b.f); pendingNote = true; }
+        }
+        done += batch.length;
+      } catch (e) { toast(`Upload failed: ${e.message}`, true); }
     }
-    msg.textContent = ''; render(); toast(pendingNote ? 'Photos uploaded — save the product, then they go live with the next site build (about 2 minutes).' : 'Photos uploaded — save the product to keep them.');
+    msg.textContent = ''; render();
+    const saved = before ? ` Optimised ${kb(before)} → ${kb(after)} (largest size) as WebP in 4 sizes.` : '';
+    toast((pendingNote ? 'Photos uploaded — save the product, then they go live with the next site build (about 2 minutes).' : 'Photos uploaded — save the product to keep them.') + saved);
   };
   pane.addEventListener('change', (e) => {
     if (e.target.dataset.file) upload(+e.target.dataset.file, e.target.files);

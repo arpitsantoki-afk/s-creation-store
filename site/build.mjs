@@ -61,6 +61,10 @@ const { settings: S, products: rawProducts, fx } = await loadData();
 if (process.env.SITE_URL) S.store.siteUrl = process.env.SITE_URL;
 if (process.env.PUBLIC_API_URL) S.store.apiUrl = process.env.PUBLIC_API_URL;
 const products = [...rawProducts].sort((a, b) => (a.sort ?? 99) - (b.sort ?? 99));
+// Photos stored in the repo (site/static/uploads → /assets/uploads) always point at the current site URL,
+// so they keep working after the switch from the github.io preview to screationindia.in.
+const upl = (u) => { const i = String(u).indexOf('/assets/uploads/'); return i < 0 ? u : S.store.siteUrl.replace(/\/$/, '') + u.slice(i); };
+for (const p of products) for (const c of p.colors || []) if (c.images) c.images = c.images.map(upl);
 const langs = S.languages.enabled.length ? S.languages.enabled : ['en'];
 const DEF = S.languages.default || 'en';
 
@@ -80,10 +84,11 @@ function makeCtx(lang) {
 }
 const outPath = (p, l) => (pfx(l) + p).replace(/^\//, '') + (p.endsWith('/') ? 'index.html' : '');
 const sitemap = []; // {loc, alts:{lang:url}, lastmod, images}
-const site = () => S.store.siteUrl.replace(/\/$/, '');
+const site = () => S.store.siteUrl.replace(/\/$/, ''); // site home (includes BASE_PATH on the github.io preview)
+const origin = () => (BASE && site().endsWith(BASE) ? site().slice(0, -BASE.length) : site()); // + ctx.url()/BASE paths
 
 function addSitemap(p, langsFor, images = []) {
-  for (const l of langsFor) sitemap.push({ loc: site() + BASE + pfx(l) + p, alts: Object.fromEntries(langsFor.map((x) => [x, site() + BASE + pfx(x) + p])), images });
+  for (const l of langsFor) sitemap.push({ loc: origin() + BASE + pfx(l) + p, alts: Object.fromEntries(langsFor.map((x) => [x, origin() + BASE + pfx(x) + p])), images });
 }
 
 const orgLD = () => ({
@@ -112,7 +117,7 @@ function home(ctx) {
   </div>
   <div class="hero-art" aria-hidden="true">
     <svg class="bigword" viewBox="0 0 1000 220" preserveAspectRatio="xMinYMin meet"><text x="0" y="190" textLength="1000" lengthAdjust="spacingAndGlyphs">${esc((products[0]?.line || 'S').toUpperCase())}</text></svg>
-    <div class="stack">${heroP.map((p) => productImage(p)).join('')}</div>
+    <div class="stack">${heroP.map((p, i) => productImage(p, null, '', { sizes: '(max-width: 980px) 60vw, 30vw', eager: i === 0 })).join('')}</div>
     <div class="tag">${products.length} STYLES · ${products.reduce((n, p) => n + p.colors.length, 0)} COLOURWAYS</div>
   </div>
 </div></section>
@@ -136,7 +141,7 @@ function home(ctx) {
 </div></section>
 ${ctaBand(ctx)}`;
   const ld = [orgLD(), { '@context': 'https://schema.org', '@type': 'WebSite', '@id': site() + '/#website', name: S.store.name, url: site() + '/', inLanguage: lang, publisher: { '@id': site() + '/#org' } },
-    { '@context': 'https://schema.org', '@type': 'ItemList', itemListElement: products.map((p, i) => ({ '@type': 'ListItem', position: i + 1, url: site() + ctx.url('/products/' + p.slug + '/') })) }];
+    { '@context': 'https://schema.org', '@type': 'ItemList', itemListElement: products.map((p, i) => ({ '@type': 'ListItem', position: i + 1, url: origin() + ctx.url('/products/' + p.slug + '/') })) }];
   return layout(ctx, { title: S.seo.homeTitle, description: S.seo.homeDescription, path: '/', body, jsonld: ld, pageClass: 'home' });
 }
 
@@ -157,7 +162,7 @@ function listing(ctx, cat = null) {
   const desc = cat ? `${title} by ${S.store.name}: ${list.map((p) => p.name).join(', ')}. Order from ${Math.min(...list.map((p) => p.moq))} pcs, mix sizes and colours, worldwide shipping.` : S.seo.homeDescription;
   return layout(ctx, { title: title + S.seo.titleSuffix, description: desc, path: pth, body,
     jsonld: [breadcrumbLD([{ name: t(lang, 'home'), url: ctx.url('/') }, { name: title, url: ctx.url(pth) }]),
-      { '@context': 'https://schema.org', '@type': 'CollectionPage', name: title, url: site() + ctx.url(pth), mainEntity: { '@type': 'ItemList', itemListElement: list.map((p, i) => ({ '@type': 'ListItem', position: i + 1, url: site() + ctx.url('/products/' + p.slug + '/'), name: p.name })) } }] });
+      { '@context': 'https://schema.org', '@type': 'CollectionPage', name: title, url: origin() + ctx.url(pth), mainEntity: { '@type': 'ItemList', itemListElement: list.map((p, i) => ({ '@type': 'ListItem', position: i + 1, url: origin() + ctx.url('/products/' + p.slug + '/'), name: p.name })) } }] });
 }
 
 function productPage(ctx, p0) {
@@ -180,7 +185,7 @@ function productPage(ctx, p0) {
 <div class="pdp" data-product>
   <div class="gallery">
     <div class="main"><div class="word" aria-hidden="true">${esc((p.line || p.name).toUpperCase())}</div>
-      <div data-main>${productImage(p, hero)}</div>
+      <div data-main>${productImage(p, hero, '', { sizes: '(max-width: 980px) 92vw, 50vw', eager: true })}</div>
       <span class="pill lime shown" data-shown>${t(lang, 'shownIn')} — ${esc(hero?.name || '')}</span></div>
     <div class="thumbs" data-thumbs></div>
   </div>
@@ -243,7 +248,7 @@ function productPage(ctx, p0) {
   const offerFor = (cur) => {
     const price = convert(minPrice, cur, S, fx);
     return price == null ? null : {
-      '@type': 'Offer', url: site() + ctx.url(pth), priceCurrency: cur, price,
+      '@type': 'Offer', url: origin() + ctx.url(pth), priceCurrency: cur, price,
       availability: 'https://schema.org/MadeToOrder', itemCondition: 'https://schema.org/NewCondition',
       eligibleQuantity: { '@type': 'QuantitativeValue', minValue: p.moq, unitCode: 'C62' },
       priceSpecification: tiers.map((x) => ({ '@type': 'UnitPriceSpecification', price: convert(x.price, cur, S, fx), priceCurrency: cur, eligibleQuantity: { '@type': 'QuantitativeValue', minValue: x.min, unitCode: 'C62' } })),
@@ -251,8 +256,8 @@ function productPage(ctx, p0) {
     };
   };
   const productLD = {
-    '@context': 'https://schema.org', '@type': 'ProductGroup', '@id': site() + ctx.url(pth) + '#product',
-    name: p.name, description: plain(p.short + ' ' + p.description), url: site() + ctx.url(pth), productGroupID: p.code, sku: p.code,
+    '@context': 'https://schema.org', '@type': 'ProductGroup', '@id': origin() + ctx.url(pth) + '#product',
+    name: p.name, description: plain(p.short + ' ' + p.description), url: origin() + ctx.url(pth), productGroupID: p.code, sku: p.code,
     brand: { '@type': 'Brand', name: S.store.name }, manufacturer: { '@id': site() + '/#org' }, material: p.fabric, image: images,
     category: 'Apparel & Accessories > Clothing > Shirts & Tops', countryOfOrigin: 'IN', inLanguage: lang,
     variesBy: ['https://schema.org/color', 'https://schema.org/size'],
@@ -264,7 +269,7 @@ function productPage(ctx, p0) {
   const avail = langs.filter((l) => l === DEF || p0.i18n?.[l]);
   return layout(ctx, {
     title: p.seo?.title || p.name + S.seo.titleSuffix, description: p.seo?.description || p.short, path: pth, body, jsonld: ld, pageClass: 'page-pdp',
-    alternates: avail, canonical: p._translated ? null : site() + ctx.url(pth, DEF), ogImage: allImgs[0] || `/assets/img/p/${p.slug}.svg`,
+    alternates: avail, canonical: p._translated ? null : origin() + ctx.url(pth, DEF), ogImage: allImgs[0] || `/assets/img/p/${p.slug}.svg`,
   });
 }
 
@@ -299,7 +304,7 @@ function contentPage(ctx, pg0) {
 <div class="wrap" style="padding-bottom:80px;max-width:900px"><h1>${esc(pg.title)}</h1><div class="prose">${md(pg.body)}</div>${form}</div>`;
   const avail = langs.filter((l) => l === DEF || pg0.i18n?.[l]);
   return layout(ctx, { title: pg.title + S.seo.titleSuffix, description: plain(pg.body).slice(0, 155), path: pth, body, alternates: avail,
-    canonical: pg._translated ? null : site() + ctx.url(pth, DEF), noindex: /\[add /i.test(pg0.body) });
+    canonical: pg._translated ? null : origin() + ctx.url(pth, DEF), noindex: /\[add /i.test(pg0.body) });
 }
 
 function appPage(ctx, kind) {
@@ -355,7 +360,7 @@ function catalogJSON() {
     store: { name: S.store.name, url: site(), email: S.store.email, baseCurrency: S.baseCurrency },
     generated: new Date().toISOString(),
     products: products.map((p) => ({
-      id: p.id, code: p.code, slug: p.slug, url: site() + BASE + '/products/' + p.slug + '/', name: p.name, line: p.line, type: p.type, category: p.category,
+      id: p.id, code: p.code, slug: p.slug, url: origin() + BASE + '/products/' + p.slug + '/', name: p.name, line: p.line, type: p.type, category: p.category,
       short: p.short, fabric: p.fabric, gsm: p.gsm, moq: p.moq, price: p.price, tiers: p.tiers || [], weightG: p.weightG,
       sizes: p.sizes, colors: p.colors.map((c) => ({ name: c.name, hex: c.hex, hex2: c.hex2 || null, image: c.images?.[0] || null })),
       specs: p.specs, leadTime: p.leadTime, i18n: Object.fromEntries(Object.entries(p.i18n || {}).map(([l, v]) => [l, { name: v.name }])),
@@ -372,7 +377,7 @@ function merchantFeed(cur) {
     items.push(`<item>
 <g:id>${xml(p.code + '-' + c.name.replace(/[^A-Za-z0-9]+/g, ''))}</g:id><g:item_group_id>${xml(p.code)}</g:item_group_id>
 <g:title>${xml(`${p.name} – ${c.name}`)}</g:title><g:description>${xml(plain(p.short + ' ' + p.description))}</g:description>
-<g:link>${xml(site() + ctx.url('/products/' + p.slug + '/'))}</g:link>
+<g:link>${xml(origin() + ctx.url('/products/' + p.slug + '/'))}</g:link>
 <g:image_link>${xml(c.images?.[0] ? absImg(c.images[0]) : site() + `/assets/img/p/${p.slug}.svg`)}</g:image_link>
 <g:availability>in_stock</g:availability><g:price>${price} ${cur}</g:price><g:condition>new</g:condition><g:brand>${xml(S.store.name)}</g:brand>
 <g:color>${xml(c.name)}</g:color><g:material>${xml(p.fabric)}</g:material><g:gender>${/women/i.test(p.gender) ? 'female' : /men/i.test(p.gender) ? 'male' : 'unisex'}</g:gender><g:age_group>adult</g:age_group>
@@ -389,6 +394,7 @@ await fs.rm(OUT, { recursive: true, force: true });
 await copyDir(path.join(ROOT, 'site/static'), path.join(OUT, 'assets'));
 await fs.copyFile(path.join(ROOT, 'shared/pricing.js'), path.join(OUT, 'assets/js/pricing.js'));
 await fs.copyFile(path.join(ROOT, 'shared/carriers.js'), path.join(OUT, 'assets/js/carriers.js'));
+await fs.copyFile(path.join(ROOT, 'shared/img.js'), path.join(OUT, 'assets/js/img.js'));
 await copyDir(path.join(ROOT, 'site/lib'), path.join(OUT, 'assets/js/lib')).catch(() => {});
 await fs.rm(path.join(OUT, 'assets/js/lib/templates.js')).catch(() => {});
 await copyDir(path.join(ROOT, 'admin'), path.join(OUT, 'admin'));
