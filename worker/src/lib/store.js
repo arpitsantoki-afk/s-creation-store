@@ -18,6 +18,10 @@ export async function getSettings(env) {
   const saved = JSON.parse(row.value);
   if (Array.isArray(saved.categories) && saved.categories.length && !saved.categories.some((c) => 'parent' in c)) await migrateTaxonomy(env, saved);
   await importNewStarters(env, saved);
+  if (saved.store && /screationindia\.in/.test(JSON.stringify([saved.store.domain, saved.store.siteUrl, saved.store.apiUrl]))) { // moved to screationglobal.com
+    for (const k of ['domain', 'siteUrl', 'apiUrl']) if (saved.store[k]) saved.store[k] = String(saved.store[k]).replace(/screationindia\.in/g, 'screationglobal.com');
+    await saveSettings(env, saved);
+  }
   // Saved settings are merged over defaults, so new setting keys added in code appear automatically.
   return deepMerge(defaultSettings, saved);
 }

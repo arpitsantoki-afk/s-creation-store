@@ -664,7 +664,7 @@ async function viewSettings() {
         <p class="muted" style="font-size:12px">Submit <code>${esc(S.store.siteUrl)}/sitemap.xml</code> in Google Search Console and Bing Webmaster Tools. Merchant Center feeds: <code>${esc(S.store.siteUrl)}/feeds/google-USD.xml</code> (one per currency). AI assistants read <code>/llms.txt</code> and <code>/catalog.json</code>.</p></div>`,
       accounts: `<div class="grid2" style="align-items:start"><div class="card"><h2>Customer accounts</h2><div class="stack">${F.bool('auth.customerAccounts', 'Let buyers create accounts (email/password and Google)')}
           <p class="muted" style="font-size:12px">Google sign-in needs GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET Worker secrets — status: ${dot(integ.google.configured)}</p>
-          ${F.csv('auth.adminDomains', 'Auto-approve dashboard sign-ins from these Google domains', { hint: 'e.g. screationindia.in — new people join as Staff. Leave empty to allow invited people only.' })}</div></div>
+          ${F.csv('auth.adminDomains', 'Auto-approve dashboard sign-ins from these Google domains', { hint: 'e.g. screationglobal.com — new people join as Staff. Leave empty to allow invited people only.' })}</div></div>
         <div class="card"><h2>Invoices</h2><div class="stack"><div class="grid2">${F.text('invoice.prefix', 'Number prefix', { hint: 'SC/2026-27/0001' })}${F.text('invoice.gstin', 'GSTIN')}</div>
           ${F.text('invoice.legalName', 'Legal name on invoice')}${F.area('invoice.address', 'Registered address', { rows: 3 })}${F.text('invoice.state', 'State (for CGST/SGST vs IGST)')}
           ${F.text('invoice.lutNote', 'Export note (LUT)')}${F.text('invoice.footer', 'Footer note')}</div></div></div>`,

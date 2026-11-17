@@ -14,7 +14,7 @@ accountRoutes(router);
 export default {
   async fetch(req, env, ctx) {
     const url = new URL(req.url);
-    // The API's public URL is wherever this request arrived (workers.dev now, api.screationindia.in later).
+    // The API's public URL is wherever this request arrived (workers.dev now, api.screationglobal.com later).
     env = { ...env, API_URL: url.origin };
     // Credentials saved in the dashboard override GitHub/Cloudflare secrets of the same name.
     try { const st = await getStoredSecrets(env); for (const k of DASHBOARD_SECRETS) if (st[k]) env[k] = st[k]; } catch { /* table not ready */ }

@@ -3,7 +3,7 @@
  * S Creation static site generator.
  *   node site/build.mjs                → builds ./dist from the live API (API_URL) or ./content (fallback)
  * Env:
- *   API_URL     Worker URL to pull published products + settings (e.g. https://api.screationindia.in)
+ *   API_URL     Worker URL to pull published products + settings (e.g. https://api.screationglobal.com)
  *   SITE_URL    Override canonical site URL
  *   BASE_PATH   Path prefix if served from a sub-path (e.g. /s-creation-store for a project page)
  *   FILE_LINKS=1  Link to …/index.html (for hosts without directory indexes)
@@ -60,10 +60,12 @@ async function copyDir(src, dst) {
 
 const { settings: S, products: rawProducts, fx } = await loadData();
 if (process.env.SITE_URL) S.store.siteUrl = process.env.SITE_URL;
+// On the real domain (no BASE_PATH) the domain shown on the site and written to CNAME follows SITE_URL.
+if (process.env.SITE_URL && !process.env.BASE_PATH) S.store.domain = new URL(process.env.SITE_URL).host;
 if (process.env.PUBLIC_API_URL) S.store.apiUrl = process.env.PUBLIC_API_URL;
 const products = [...rawProducts].sort((a, b) => (a.sort ?? 99) - (b.sort ?? 99));
 // Photos stored in the repo (site/static/uploads → /assets/uploads) always point at the current site URL,
-// so they keep working after the switch from the github.io preview to screationindia.in.
+// so they keep working after the switch from the github.io preview to screationglobal.com.
 const upl = (u) => { const i = String(u).indexOf('/assets/uploads/'); return i < 0 ? u : S.store.siteUrl.replace(/\/$/, '') + u.slice(i); };
 // Photos optimised into the repo (scripts/optimize-images.mjs → content/photos.json) fill any colour that has none yet.
 const repoPhotos = await readJSON('content/photos.json').catch(() => ({}));

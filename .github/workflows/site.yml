@@ -36,7 +36,7 @@ jobs:
           CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           if [ -n "${{ vars.API_URL }}" ]; then echo "url=${{ vars.API_URL }}" >> "$GITHUB_OUTPUT"; exit 0; fi
-          if [ "${{ vars.CUSTOM_DOMAIN }}" = "true" ]; then echo "url=https://api.screationindia.in" >> "$GITHUB_OUTPUT"; exit 0; fi
+          if [ "${{ vars.CUSTOM_DOMAIN }}" = "true" ]; then echo "url=https://api.screationglobal.com" >> "$GITHUB_OUTPUT"; exit 0; fi
           if [ -n "$CF_TOKEN" ] && [ -n "$CF_ACCOUNT" ]; then
             SUB=$(curl -fsS -H "Authorization: Bearer $CF_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT/workers/subdomain" | jq -r '.result.subdomain // empty' || true)
             [ -n "$SUB" ] && echo "url=https://screation-api.$SUB.workers.dev" >> "$GITHUB_OUTPUT"
@@ -47,10 +47,10 @@ jobs:
         env:
           API_URL: ${{ steps.api.outputs.url }}         # empty = build from content/
           PUBLIC_API_URL: ${{ steps.api.outputs.url }}
-          # Until screationindia.in points at GitHub Pages, the site is served as a preview at
+          # Until screationglobal.com points at GitHub Pages, the site is served as a preview at
           # https://<owner>.github.io/<repo>/. Set repository variable CUSTOM_DOMAIN=true after the DNS switch.
           BASE_PATH: ${{ vars.CUSTOM_DOMAIN != 'true' && format('/{0}', github.event.repository.name) || '' }}
-          SITE_URL: ${{ vars.CUSTOM_DOMAIN != 'true' && format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) || '' }}
+          SITE_URL: ${{ vars.CUSTOM_DOMAIN == 'true' && 'https://screationglobal.com' || format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) }}
       - uses: actions/upload-pages-artifact@v3
         with: { path: dist }
   deploy:

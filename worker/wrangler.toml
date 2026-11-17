@@ -4,12 +4,12 @@ main = "src/index.js"
 compatibility_date = "2025-09-01"
 compatibility_flags = ["nodejs_compat"]
 
-# Custom domain for the API (DNS for screationindia.in must be on Cloudflare)
-routes = [{ pattern = "api.screationindia.in", custom_domain = true }]
+# Custom domain for the API (DNS for screationglobal.com must be on Cloudflare)
+routes = [{ pattern = "api.screationglobal.com", custom_domain = true }]
 
 [vars]
-SITE_URL = "https://screationindia.in"
-API_URL = "https://api.screationindia.in"
+SITE_URL = "https://screationglobal.com"
+API_URL = "https://api.screationglobal.com"
 # Comma-separated extra origins allowed to call the API (local dev etc.)
 ALLOWED_ORIGINS = "http://localhost:8080,http://127.0.0.1:8080"
 # GitHub repo that builds the storefront ("owner/repo"); used by the dashboard Publish button

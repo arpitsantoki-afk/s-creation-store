@@ -1,12 +1,12 @@
 # S Creation — global e-commerce store
 
-Storefront for **screationindia.in**: premium polos and tees sold in MOQ quantities, with multi-currency checkout, multiple languages, Stripe + PayPal, and DHL Express.
+Storefront for **screationglobal.com**: premium polos and tees sold in MOQ quantities, with multi-currency checkout, multiple languages, Stripe + PayPal, and DHL Express.
 
 ```
 ┌────────────── GitHub ──────────────┐        ┌──────────── Cloudflare ────────────┐
-│ repo: site/ admin/ content/ worker/ │        │ Worker  api.screationindia.in       │
+│ repo: site/ admin/ content/ worker/ │        │ Worker  api.screationglobal.com       │
 │ Actions: build static site ─────────┼─pulls──┤  ├ D1   products, orders, settings   │
-│ Pages:   screationindia.in  (HTML)  │◀─────── │  ├ R2   product photos, DHL labels  │
+│ Pages:   screationglobal.com  (HTML)  │◀─────── │  ├ R2   product photos, DHL labels  │
 └─────────────────────────────────────┘ publish │  ├ Cron daily FX rates              │
        ▲  shopper browser ── cart/checkout ───▶ │  └ Stripe · PayPal · DHL · Resend   │
        └── /admin dashboard ── API ───────────▶ └─────────────────────────────────────┘
@@ -55,16 +55,16 @@ These are seeded so the site works end-to-end — **replace them in the dashboar
 1. Create a repo (e.g. `s-creation-store`) and push this folder to `main`.
 2. **Settings → Pages → Source: GitHub Actions.** The site goes live as a preview at `https://<user>.github.io/s-creation-store/`. GitHub Pages needs a **public** repo on the Free plan; private repos need GitHub Pro or Team.
 3. **Settings → Secrets and variables → Actions**
-   * Variable `API_URL` = `https://api.screationindia.in`
+   * Variable `API_URL` = `https://api.screationglobal.com`
    * Secrets `CLOUDFLARE_API_TOKEN` (template "Edit Cloudflare Workers" + D1 edit) and `CLOUDFLARE_ACCOUNT_ID`.
 
 ### 2. Move DNS to Cloudflare
-1. Cloudflare → *Add a site* → `screationindia.in` (Free plan).
+1. Cloudflare → *Add a site* → `screationglobal.com` (Free plan).
 2. At DomainJerry, replace the nameservers with the two Cloudflare gives you. Propagation usually takes minutes to hours.
 3. In Cloudflare DNS, point the site at GitHub Pages. Set these records to **DNS only** (grey cloud) so GitHub can issue the TLS certificate:
    * `A @ → 185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`
    * `CNAME www → <your-github-user>.github.io`
-4. GitHub → Settings → Pages → Custom domain `screationindia.in` → tick **Enforce HTTPS** once the certificate is ready.
+4. GitHub → Settings → Pages → Custom domain `screationglobal.com` → tick **Enforce HTTPS** once the certificate is ready.
 5. Add the repository variable `CUSTOM_DOMAIN` = `true` (Settings → Secrets and variables → Actions → Variables), then click **Publish**. The site now builds for the domain root instead of the preview path.
    *(The build writes the `CNAME` file automatically.)*
 
@@ -97,20 +97,20 @@ Everything runs on free tiers: GitHub Pages (public repo), the Cloudflare Worker
 * `RESEND_API_KEY`, `EMAIL_FROM`
 * `PUBLISH_TOKEN`: a fine-grained GitHub token with *Contents: read & write* and *Actions: read* on this repo. It powers the dashboard's Publish button; without it the site still rebuilds every 6 hours.
 
-Until the domain is on Cloudflare, the API runs at `https://screation-api.<your-subdomain>.workers.dev`. After the DNS switch, set the variable `CUSTOM_DOMAIN=true` and it moves to `api.screationindia.in`.
+Until the domain is on Cloudflare, the API runs at `https://screation-api.<your-subdomain>.workers.dev`. After the DNS switch, set the variable `CUSTOM_DOMAIN=true` and it moves to `api.screationglobal.com`.
 
 ### 4. Google sign-in (customers and team)
 1. Go to console.cloud.google.com and create a project, e.g. "S Creation".
-2. Open **APIs & Services → OAuth consent screen**, choose *External*, and fill in the app name, support email and the authorized domain `screationindia.in`. Then **Publish app**.
+2. Open **APIs & Services → OAuth consent screen**, choose *External*, and fill in the app name, support email and the authorized domain `screationglobal.com`. Then **Publish app**.
 3. Open **Credentials → Create credentials → OAuth client ID** and choose *Web application*.
-   * Authorized redirect URI: `https://api.screationindia.in/api/auth/google/callback`. While on the preview, also add `https://screation-api.<subdomain>.workers.dev/api/auth/google/callback`.
+   * Authorized redirect URI: `https://api.screationglobal.com/api/auth/google/callback`. While on the preview, also add `https://screation-api.<subdomain>.workers.dev/api/auth/google/callback`.
 4. Add the client ID and secret as GitHub secrets `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, then re-run "Deploy API worker".
 5. "Continue with Google" now shows on `/account/` and `/admin/`. Team members must be invited first, under Dashboard → Team, with the exact Google email.
 
 ### 5. Payments
 * **Stripe** — Make sure your Stripe account supports your business in India and has international cards enabled. Then:
   * `wrangler secret put STRIPE_SECRET_KEY`
-  * Add a webhook to `https://api.screationindia.in/api/webhooks/stripe` for these events: `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired`.
+  * Add a webhook to `https://api.screationglobal.com/api/webhooks/stripe` for these events: `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired`.
   * `wrangler secret put STRIPE_WEBHOOK_SECRET`
 * **PayPal** — Create a Business account, then a REST app at developer.paypal.com.
   * Set `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET`.
@@ -125,20 +125,20 @@ Request **MyDHL API** access at developer.dhl.com; it needs a DHL Express accoun
 * Fill in the ship-from address and GSTIN under Settings → Shipping.
 
 ### 7. Optional
-* **Emails (strongly recommended):** sign up at resend.com, verify the domain, then set `RESEND_API_KEY` and add an `EMAIL_FROM` var such as `S Creation <orders@screationindia.in>`.
+* **Emails (strongly recommended):** sign up at resend.com, verify the domain, then set `RESEND_API_KEY` and add an `EMAIL_FROM` var such as `S Creation <orders@screationglobal.com>`.
   * Resend sends order confirmations with the invoice PDF attached, shipping notices, and account emails (verification, password reset).
   * Without it, those emails are skipped.
 * **Analytics:** GA4 ID or Cloudflare Web Analytics token (Settings → SEO & analytics).
 
 ### 8. First run
-1. Open `https://screationindia.in/admin/` and create the owner account with your `SETUP_TOKEN`.
+1. Open `https://screationglobal.com/admin/` and create the owner account with your `SETUP_TOKEN`.
 2. Go to **Products** and click **Import the 6 starter products**.
 3. Set prices, upload photos and edit the policies.
 4. Fill in your GSTIN, legal name and address under **Settings → Accounts & invoices**.
 5. Invite your team under **Team**.
 6. Click **Publish site**.
 7. Check the **Setup checklist** on the dashboard: every line should be green.
-8. Submit `https://screationindia.in/sitemap.xml` to Google Search Console and Bing Webmaster Tools. Add `/feeds/google-<CUR>.xml` to Google Merchant Center.
+8. Submit `https://screationglobal.com/sitemap.xml` to Google Search Console and Bing Webmaster Tools. Add `/feeds/google-<CUR>.xml` to Google Merchant Center.
 
 ## Day-to-day
 * **Edit products, settings or pages, then click Publish.** Exchange-rate price changes go live without publishing.

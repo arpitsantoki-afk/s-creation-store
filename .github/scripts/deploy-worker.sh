@@ -46,4 +46,4 @@ for n in STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET PAYPAL_CLIENT_ID PAYPAL_CLIENT_
   v="${!n:-}"; [ -n "$v" ] && put "$n" "$v"
 done
 echo "### API deployed" >> "$GITHUB_STEP_SUMMARY"
-echo "API URL: ${URL:-https://api.screationindia.in}" >> "$GITHUB_STEP_SUMMARY"
+echo "API URL: ${URL:-https://api.screationglobal.com}" >> "$GITHUB_STEP_SUMMARY"
