@@ -36,7 +36,7 @@ async function applyContentRev(env, saved) {
   for (const d of def.pages) {
     const i = pages.findIndex((p) => p.slug === d.slug);
     if (i < 0) pages.push(d);
-    else if (/\[add /i.test(pages[i].body || '') || OLD_PAGE_DEFAULTS.includes(d.slug)) pages[i] = { ...pages[i], title: d.title, body: d.body };
+    else if (/\[add /i.test(pages[i].body || '') || [...OLD_PAGE_DEFAULTS, ...(def.contentForce || [])].includes(d.slug)) pages[i] = { ...pages[i], title: d.title, body: d.body };
   }
   saved.pages = pages;
   saved.store = { ...(saved.store || {}), legalName: saved.store?.legalName || def.store.legalName };
