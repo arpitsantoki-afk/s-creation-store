@@ -7,11 +7,11 @@
     "phone": "+91 9033021196",
     "whatsapp": "+919033021196",
     "address": {
-      "line1": "",
+      "line1": "355B/2, Sector 7A",
       "line2": "",
-      "city": "",
+      "city": "Gandhinagar",
       "state": "Gujarat",
-      "postcode": "",
+      "postcode": "382007",
       "country": "IN"
     },
     "domain": "screationglobal.com",
@@ -534,32 +534,32 @@
     {
       "slug": "about",
       "title": "About S Creation",
-      "nav": true,
-      "body": "S Creation makes premium polos and T-shirts in India for teams, brands and businesses around the world.\n\nWe focus on a small range done properly: Pima cotton knitted on Mayer & Cie German machines, recycled fabrics made with Optiknit technology, and performance polyester that stays sharp all day.\n\nEvery style can be ordered from its minimum quantity, with any mix of sizes and colours, paid for in your currency and shipped by DHL Express."
-    },
-    {
-      "slug": "shipping-returns",
-      "title": "Shipping & Returns",
-      "nav": false,
-      "body": "## Shipping\n\nWe ship worldwide with DHL Express. Shipping is calculated at checkout from your delivery address and the total weight of your order.\n\nInternational orders are shipped DAP (Delivered at Place). Import duties and local taxes, if any, are collected by the carrier from the receiver.\n\n## Returns\n\n[Add your returns and exchange policy here before going live.]"
-    },
-    {
-      "slug": "terms",
-      "title": "Terms & Conditions",
-      "nav": false,
-      "body": "[Add your terms and conditions here before going live.]"
-    },
-    {
-      "slug": "privacy",
-      "title": "Privacy Policy",
-      "nav": false,
-      "body": "[Add your privacy policy here before going live.]"
+      "body": "S Creation makes premium polos and T-shirts in India for teams, brands and businesses around the world.\n\nWe focus on a small range done properly: Pima cotton knitted on Mayer & Cie German machines, recycled fabrics, and performance polyester that stays sharp all day.\n\nEvery style can be ordered from its minimum quantity, with any mix of sizes and colours, paid for in your currency and shipped by DHL Express. Not sure yet? Order a sample kit of up to 5 pieces first.\n\n## Business details\n\n- **Business name:** S Creation (proprietorship)\n- **GSTIN:** 24ASPPS1112E1Z0\n- **Address:** 355B/2, Sector 7A, Gandhinagar, Gujarat 382007, India\n- **Email:** screationindia@gmail.com\n- **Phone / WhatsApp:** +91 90330 21196\n- **Support hours:** Monday to Saturday, 10 am – 7 pm IST"
     },
     {
       "slug": "contact",
       "title": "Contact",
-      "nav": true,
-      "body": "Email us at screationindia@gmail.com or call +91 9033021196. For bulk quotes, custom branding or samples, use the form below."
+      "body": "We're happy to help with bulk quotes, sample kits, custom branding and order questions.\n\n- **Email:** screationindia@gmail.com\n- **Phone / WhatsApp:** +91 90330 21196\n- **Support hours:** Monday to Saturday, 10 am – 7 pm IST\n- **Address:** S Creation, 355B/2, Sector 7A, Gandhinagar, Gujarat 382007, India\n\nWe reply within one working day. For bulk quotes, custom branding or samples, you can also use the form below."
+    },
+    {
+      "slug": "shipping-returns",
+      "title": "Shipping Policy",
+      "body": "## Where we ship\n\nWe ship across India and to most countries worldwide with DHL Express. If we can't deliver to your address, checkout will not show a shipping rate and we'll contact you.\n\n## Shipping charges\n\nShipping is calculated at checkout from your delivery address and the total weight of your order, and is shown before you pay.\n\n## Dispatch time\n\n- **Bulk orders:** each product has its own production and dispatch time, shown on the product page as *Lead time*. The longest lead time in your order applies to the whole order.\n- **Sample kits:** dispatched within 3–5 working days.\n\nWorking days are Monday to Saturday, excluding public holidays in India. Once your order ships we email you the DHL tracking number; you can also track it from your account or the order page.\n\n## Delivery time\n\nDHL Express usually delivers in 1–5 working days after dispatch, depending on the destination. Customs clearance can add time for international orders.\n\n## Duties and taxes on international orders\n\nInternational orders are shipped DAP (Delivered at Place). Import duties, taxes and customs fees in the destination country are **paid by the customer** and are collected by DHL or the local customs authority on delivery. These charges are not included in our prices or shipping charge. If a shipment is refused because of these charges, the return shipping and any charges incurred are deducted from any refund.\n\n## Address and delivery issues\n\nPlease make sure your address and phone number are correct. If a shipment is returned to us because of an incorrect address or failed delivery, re-shipping is charged to the customer.\n\n## Questions\n\nEmail screationindia@gmail.com or WhatsApp +91 90330 21196 (Monday to Saturday, 10 am – 7 pm IST)."
+    },
+    {
+      "slug": "cancellation-refunds",
+      "title": "Cancellation & Refund Policy",
+      "body": "## Cancellations\n\n- You can cancel an order **until production starts**. Email screationindia@gmail.com or WhatsApp +91 90330 21196 with your order number. We'll confirm whether production has started.\n- Orders cancelled before production are refunded in full.\n- Once production has started, the order can no longer be cancelled.\n- Sample kits can be cancelled until they are dispatched.\n\n## Returns\n\n- **Sample kits:** sample kits are not returnable.\n- **Bulk orders:** we accept returns for genuine reasons, such as a manufacturing defect, damage in transit, or a wrong product, colour or size compared with your order.\n- Report the issue within **7 days of delivery** by email or WhatsApp, with your order number and clear photos of the items and labels.\n- After we approve the return, send the items back unused, unwashed and with tags. **Return shipping is paid by the buyer.**\n- Custom-branded, printed or embroidered orders made to your design are not returnable, except for a manufacturing defect.\n- Normal variations in colour shade between screens and fabric lots are not considered defects.\n\n## Refunds\n\n- Approved refunds are made to the **original payment method** within **7–10 working days** of approval (for returns, after we receive and inspect the items).\n- Your bank or card issuer may take a few additional days to show the credit.\n- Original shipping charges and any import duties or taxes paid are not refundable, except where the return is due to our error.\n- Instead of a refund, we can replace defective or wrong items at no cost.\n\n## Contact\n\nS Creation, 355B/2, Sector 7A, Gandhinagar, Gujarat 382007, India. Email screationindia@gmail.com, phone/WhatsApp +91 90330 21196, Monday to Saturday, 10 am – 7 pm IST."
+    },
+    {
+      "slug": "terms",
+      "title": "Terms & Conditions",
+      "body": "These terms apply to all orders placed on screationglobal.com, which is operated by **S Creation**, a proprietorship registered in India (GSTIN 24ASPPS1112E1Z0), 355B/2, Sector 7A, Gandhinagar, Gujarat 382007, India (\"we\", \"us\"). By placing an order you agree to these terms.\n\n## Orders and minimum quantities\n\n- Each product has a minimum order quantity (MOQ) per product, which can be any mix of sizes and colours. Volume prices apply automatically when you reach the quantities shown.\n- Sample kits are an exception: up to 5 pieces per order with no minimum.\n- An order is confirmed when payment is successful. We may cancel and fully refund an order if a product becomes unavailable, a price was shown in error, or we suspect fraud.\n\n## Prices and payment\n\n- Prices are set in Indian rupees (INR). Prices in other currencies are converted at current exchange rates and may change. The amount you pay is the amount shown at checkout.\n- Applicable GST is charged on orders within India. International orders are export supplies; import duties and taxes in your country are paid by you (see the Shipping Policy).\n- Payments are processed securely by our payment partners. We do not store your card details.\n\n## Production, colours and sizes\n\n- Products are made to order; lead times are shown on each product page.\n- Colours on screen may differ slightly from the actual fabric, and shades can vary slightly between production lots.\n- Measurements in our size guide are garment measurements with a tolerance of about ±1 inch.\n\n## Shipping, cancellations and returns\n\nShipping, cancellations, returns and refunds are governed by our Shipping Policy and our Cancellation & Refund Policy, which form part of these terms.\n\n## Custom branding\n\nIf you ask us to add your logo or artwork, you confirm that you have the right to use it. You are responsible for any claim that it infringes someone else's rights.\n\n## Intellectual property\n\nAll content on this website, including product photos, text and the S Creation name and logo, belongs to S Creation and may not be copied or used without permission.\n\n## Limitation of liability\n\nTo the extent allowed by law, our liability for any order is limited to the amount paid for that order. We are not liable for indirect or consequential losses, or for delays caused by carriers, customs or events beyond our control.\n\n## Governing law\n\nThese terms are governed by the laws of India. Any disputes are subject to the exclusive jurisdiction of the courts at **Gandhinagar, Gujarat**.\n\n## Contact\n\nEmail screationindia@gmail.com or call/WhatsApp +91 90330 21196 (Monday to Saturday, 10 am – 7 pm IST)."
+    },
+    {
+      "slug": "privacy",
+      "title": "Privacy Policy",
+      "body": "This policy explains how **S Creation** (355B/2, Sector 7A, Gandhinagar, Gujarat 382007, India) collects and uses your personal information when you use screationglobal.com.\n\n## What we collect\n\n- **Order and account details:** name, company, email, phone number, billing and shipping addresses, GST or tax ID if you provide it, and your order history.\n- **Payment information:** payments are handled by our payment partners (such as Razorpay and PayPal). We receive the payment status and a reference, not your full card details.\n- **Messages:** what you send us through the contact form, email or WhatsApp.\n- **Technical data:** basic information such as your browser type and pages visited, used to keep the site secure and working. Your cart and currency choice are stored in your own browser.\n\n## How we use it\n\n- To process, ship and support your orders, and to send order confirmations, invoices and tracking updates.\n- To reply to your enquiries.\n- To meet legal and tax requirements, such as GST invoicing and export documentation.\n- To prevent fraud and keep the website secure.\n\nWe do not sell your personal information.\n\n## Who we share it with\n\nOnly with the service providers needed to run the shop: payment processors, DHL and other carriers (name, address and phone for delivery and customs), our website and email hosting providers, and government authorities where the law requires it.\n\n## Signing in with Google\n\nIf you sign in with Google, we receive your name and email address from Google to create your account. We do not receive your Google password.\n\n## How long we keep it\n\nWe keep order and invoice records for as long as tax law requires (currently at least 8 years in India). You can ask us to delete your account at any time; records we must keep by law are retained.\n\n## Your choices and rights\n\nYou can view and update your details in your account, or email us to access, correct or delete your personal information, or to stop marketing messages.\n\n## Security\n\nYour data is sent over encrypted (HTTPS) connections, and passwords are stored only in hashed form.\n\n## Contact\n\nFor privacy questions, contact S Creation at screationindia@gmail.com or +91 90330 21196.\n\n*Last updated: 18 November 2026.*"
     }
   ],
   "categories": [
@@ -637,8 +637,8 @@
   "invoice": {
     "prefix": "SC",
     "legalName": "S Creation",
-    "gstin": "",
-    "address": "[Studio address]\nSurat, Gujarat 395003, India",
+    "gstin": "24ASPPS1112E1Z0",
+    "address": "355B/2, Sector 7A\nGandhinagar, Gujarat 382007, India",
     "state": "Gujarat",
     "lutNote": "Supply meant for export under LUT without payment of IGST.",
     "footer": "Thank you for your business."
@@ -656,5 +656,6 @@
     "dispatchDays": "3–5",
     "title": "Order a sample kit",
     "text": "Feel the fabric before you commit. Pick up to 5 pieces across any styles, colours and sizes — no minimum. Shipped worldwide by DHL Express."
-  }
+  },
+  "contentRev": 2
 }

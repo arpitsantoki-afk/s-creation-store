@@ -18,12 +18,33 @@ export async function getSettings(env) {
   const saved = JSON.parse(row.value);
   if (Array.isArray(saved.categories) && saved.categories.length && !saved.categories.some((c) => 'parent' in c)) await migrateTaxonomy(env, saved);
   await importNewStarters(env, saved);
+  if ((saved.contentRev || 0) < (defaultSettings.contentRev || 0)) await applyContentRev(env, saved);
   if (saved.store && /screationindia\.in/.test(JSON.stringify([saved.store.domain, saved.store.siteUrl, saved.store.apiUrl]))) { // moved to screationglobal.com
     for (const k of ['domain', 'siteUrl', 'apiUrl']) if (saved.store[k]) saved.store[k] = String(saved.store[k]).replace(/screationindia\.in/g, 'screationglobal.com');
     await saveSettings(env, saved);
   }
   // Saved settings are merged over defaults, so new setting keys added in code appear automatically.
   return deepMerge(defaultSettings, saved);
+}
+
+// Business details and policy pages shipped in content/settings.json (contentRev). Pages are replaced only
+// if they were never edited away from the old defaults (still holding "[Add …" placeholders or identical text).
+const OLD_PAGE_DEFAULTS = ['about', 'contact'];
+async function applyContentRev(env, saved) {
+  const def = defaultSettings;
+  const pages = Array.isArray(saved.pages) ? saved.pages : [];
+  for (const d of def.pages) {
+    const i = pages.findIndex((p) => p.slug === d.slug);
+    if (i < 0) pages.push(d);
+    else if (/\[add /i.test(pages[i].body || '') || OLD_PAGE_DEFAULTS.includes(d.slug)) pages[i] = { ...pages[i], title: d.title, body: d.body };
+  }
+  saved.pages = pages;
+  saved.store = { ...(saved.store || {}), legalName: saved.store?.legalName || def.store.legalName };
+  if (!saved.store.address?.line1) saved.store.address = def.store.address;
+  saved.invoice = { ...(saved.invoice || {}) };
+  for (const k of ['gstin', 'address', 'legalName', 'state']) if (!saved.invoice[k] || /\[/.test(saved.invoice[k])) saved.invoice[k] = def.invoice[k];
+  saved.contentRev = def.contentRev;
+  await saveSettings(env, saved);
 }
 
 // Products added to content/products.json after launch are imported once (never re-added if deleted later),

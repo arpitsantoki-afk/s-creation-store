@@ -121,7 +121,7 @@ ${body}
       <li><a href="${ctx.href('/size-guide/')}">${t(lang, 'sizeGuide')}</a></li>
     </ul></div>
     <div><h4>${t(lang, 'policies')}</h4><ul>
-      ${pageLink('shipping-returns')}${pageLink('terms')}${pageLink('privacy')}
+      ${pageLink('shipping-returns')}${pageLink('cancellation-refunds')}${pageLink('terms')}${pageLink('privacy')}
     </ul></div>
   </div>
   <svg class="bigword" viewBox="0 0 1000 150" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><text x="0" y="128" textLength="1000" lengthAdjust="spacingAndGlyphs">${esc(S.store.name.toUpperCase())}</text></svg>
