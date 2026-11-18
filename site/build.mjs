@@ -531,6 +531,9 @@ await fs.copyFile(path.join(ROOT, 'shared/img.js'), path.join(OUT, 'assets/js/im
 await copyDir(path.join(ROOT, 'site/lib'), path.join(OUT, 'assets/js/lib')).catch(() => {});
 await fs.rm(path.join(OUT, 'assets/js/lib/templates.js')).catch(() => {});
 await copyDir(path.join(ROOT, 'admin'), path.join(OUT, 'admin'));
+// Cache-bust the dashboard's files on every build so changes show without a hard refresh.
+{ const p = path.join(OUT, 'admin/index.html'); const h = await fs.readFile(p, 'utf8');
+  await fs.writeFile(p, h.replace('href="admin.css"', `href="admin.css?v=${V}"`).replace('src="../assets/config.js"', `src="../assets/config.js?v=${V}"`).replace('src="admin.js"', `src="admin.js?v=${V}"`)); }
 
 for (const p of products) {
   const hero = p.colors.find((c) => c.name === p.heroColor) || p.colors[0];
