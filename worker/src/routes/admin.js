@@ -281,6 +281,31 @@ export function adminRoutes(r) {
     return json({ ok: true });
   });
 
+  // PayPal: check the credentials and create (or reuse) the webhook, saving its ID.
+  A('POST', '/api/admin/paypal/setup', 'settings', async (req, env) => {
+    const b = await body(req);
+    const settings = await getSettings(env);
+    const mode = b.mode === 'live' ? 'live' : b.mode === 'sandbox' ? 'sandbox' : (settings.payments?.paypal?.mode || 'sandbox');
+    const host = mode === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';
+    if (!env.PAYPAL_CLIENT_ID || !env.PAYPAL_CLIENT_SECRET) return json({ ok: false, mode, error: 'Enter the Client ID and Secret above and click “Save PayPal credentials” first.' });
+    const tr = await fetch(host + '/v1/oauth2/token', { method: 'POST', body: 'grant_type=client_credentials', headers: { authorization: 'Basic ' + btoa(`${env.PAYPAL_CLIENT_ID}:${env.PAYPAL_CLIENT_SECRET}`), 'content-type': 'application/x-www-form-urlencoded' } });
+    const td = await tr.json().catch(() => ({}));
+    if (!tr.ok) return json({ ok: false, mode, error: `PayPal rejected these ${mode} credentials (${td.error_description || td.error || tr.status}). Check that the Client ID/Secret are from the ${mode === 'live' ? 'Live' : 'Sandbox'} tab of your PayPal app.` });
+    const H = { authorization: 'Bearer ' + td.access_token, 'content-type': 'application/json' };
+    const url = `${env.API_URL}/api/webhooks/paypal`;
+    const list = await fetch(host + '/v1/notifications/webhooks', { headers: H }).then((r) => r.json()).catch(() => ({}));
+    let hook = (list.webhooks || []).find((w) => w.url === url);
+    if (!hook) {
+      const cr = await fetch(host + '/v1/notifications/webhooks', { method: 'POST', headers: H, body: JSON.stringify({ url, event_types: ['PAYMENT.CAPTURE.COMPLETED', 'PAYMENT.CAPTURE.DENIED', 'PAYMENT.CAPTURE.REFUNDED', 'CHECKOUT.ORDER.APPROVED'].map((name) => ({ name })) }) });
+      hook = await cr.json().catch(() => ({}));
+      if (!cr.ok) return json({ ok: true, mode, credentials: 'valid', webhook: null, error: 'Credentials work, but the webhook could not be created: ' + (hook.details?.[0]?.description || hook.message || cr.status) });
+    }
+    const st = await getStoredSecrets(env);
+    st.PAYPAL_WEBHOOK_ID = hook.id;
+    await saveStoredSecrets(env, st);
+    return json({ ok: true, mode, credentials: 'valid', webhook: { id: hook.id, url } });
+  });
+
   // Diagnose DHL: runs one sample rate request and returns DHL's raw answer.
   A('POST', '/api/admin/shipping/test', 'settings', async (req, env) => {
     const b = await body(req);

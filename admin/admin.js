@@ -628,7 +628,13 @@ async function viewSettings() {
       pay: `<div class="grid2"><div class="card"><h2>Stripe <span>${dot(integ.stripe.configured)}</span></h2><div class="stack">${F.bool('payments.stripe.enabled', 'Enabled')}${F.text('payments.stripe.label', 'Label at checkout')}${F.csv('payments.stripe.currencies', 'Limit to currencies', { hint: 'empty = all enabled', upper: true })}
           <p class="muted" style="font-size:12px">Keys are Worker secrets: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET. Webhook URL: <code>${esc(integ.webhooks.stripe)}</code> (events: checkout.session.completed, .async_payment_succeeded, .async_payment_failed, .expired).</p></div></div>
         <div class="card"><h2>PayPal <span>${dot(integ.paypal.configured)}</span></h2><div class="stack">${F.bool('payments.paypal.enabled', 'Enabled')}${F.sel('payments.paypal.mode', 'Mode', [['sandbox', 'Sandbox (test)'], ['live', 'Live']])}${F.text('payments.paypal.label', 'Label at checkout')}${F.csv('payments.paypal.currencies', 'Currencies', { upper: true })}
-          <p class="muted" style="font-size:12px">Secrets: PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET (+ PAYPAL_WEBHOOK_ID optional). INR is not accepted for cross-border PayPal payments.</p></div></div></div>
+          <div class="stack" id="ppcreds" style="background:#faf9f7;padding:12px;border:1px solid var(--line)"><b>PayPal credentials</b>
+            <label class="f">Client ID <small id="h_PAYPAL_CLIENT_ID"></small><input class="i" type="password" autocomplete="off" data-psec="PAYPAL_CLIENT_ID" placeholder="From developer.paypal.com → Apps & Credentials"></label>
+            <label class="f">Secret <small id="h_PAYPAL_CLIENT_SECRET"></small><input class="i" type="password" autocomplete="off" data-psec="PAYPAL_CLIENT_SECRET" placeholder="Secret key 1"></label>
+            <div class="muted" style="font-size:12px">Webhook: <span id="h_PAYPAL_WEBHOOK_ID"></span></div>
+            <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn sm" data-ppsave>Save PayPal credentials</button><button class="btn ghost sm" data-pptest>Check &amp; set up webhook</button><button class="btn ghost sm" data-ppclear>Remove</button></div>
+            <pre id="ppout" hidden style="white-space:pre-wrap;font-size:12px;margin:0"></pre></div>
+          <p class="muted" style="font-size:12px">Use the Sandbox keys with Mode = Sandbox for testing, then the Live keys with Mode = Live. Save the settings (Mode) before “Check”. INR is not accepted for cross-border PayPal payments.</p></div></div></div>
         <p class="muted">New gateways (e.g. Razorpay) plug in as a module in <code>worker/src/payments/</code> and appear here.</p>`,
       ship: `<div class="card"><h2>Ship-from address (DHL shipper)</h2><div class="grid3">${F.text('shipping.origin.company', 'Company')}${F.text('shipping.origin.contact', 'Contact name')}${F.text('shipping.origin.phone', 'Phone')}
           ${F.text('shipping.origin.email', 'Email')}${F.text('shipping.origin.line1', 'Address')}${F.text('shipping.origin.city', 'City')}${F.text('shipping.origin.state', 'State code')}${F.text('shipping.origin.postcode', 'PIN code')}${F.text('shipping.origin.country', 'Country (ISO)')}${F.text('shipping.origin.gstin', 'GSTIN', { hint: 'printed on export docs' })}</div></div>
@@ -679,6 +685,16 @@ async function viewSettings() {
       paint();
       $('[data-savesec]').onclick = async () => { const body = {}; $$('[data-sec]').forEach((i) => { if (i.value.trim()) body[i.dataset.sec] = i.value.trim(); }); if (!Object.keys(body).length) return toast('Type the key first', true); await api('/api/admin/secrets', { method: 'PUT', body }); $$('[data-sec]').forEach((i) => (i.value = '')); toast('DHL credentials saved'); paint(); };
       $('[data-clearsec]').onclick = async () => { if (!confirm('Remove the DHL credentials saved in the dashboard?')) return; await api('/api/admin/secrets', { method: 'PUT', body: { DHL_API_KEY: '', DHL_API_SECRET: '', DHL_ACCOUNT_NUMBER: '' } }); toast('Removed'); paint(); };
+    }
+    if ($('#ppcreds')) {
+      const keys = ['PAYPAL_CLIENT_ID', 'PAYPAL_CLIENT_SECRET', 'PAYPAL_WEBHOOK_ID'];
+      const paint = async () => { const { secrets } = await api('/api/admin/secrets'); for (const k of keys) { const el = $('#h_' + k), v = secrets[k]; if (el) el.textContent = v?.set ? (k === 'PAYPAL_WEBHOOK_ID' ? `set up ✓ (…${v.hint})` : `saved ••••${v.hint}`) : (k === 'PAYPAL_WEBHOOK_ID' ? 'not set up — click “Check & set up webhook”' : 'not set'); } };
+      paint();
+      $('[data-ppsave]').onclick = async () => { const body = {}; $$('[data-psec]').forEach((i) => { if (i.value.trim()) body[i.dataset.psec] = i.value.trim(); }); if (!Object.keys(body).length) return toast('Paste the Client ID and Secret first', true); if (body.PAYPAL_CLIENT_ID) body.PAYPAL_WEBHOOK_ID = ''; await api('/api/admin/secrets', { method: 'PUT', body }); $$('[data-psec]').forEach((i) => (i.value = '')); toast('PayPal credentials saved — now click “Check & set up webhook”'); paint(); };
+      $('[data-ppclear]').onclick = async () => { if (!confirm('Remove the PayPal credentials saved in the dashboard?')) return; await api('/api/admin/secrets', { method: 'PUT', body: Object.fromEntries(keys.map((k) => [k, ''])) }); toast('Removed'); paint(); };
+      $('[data-pptest]').onclick = async () => { const o = $('#ppout'); o.hidden = false; o.textContent = 'Asking PayPal…';
+        try { const d = await api('/api/admin/paypal/setup', { method: 'POST', body: { mode: S.payments?.paypal?.mode } }); o.textContent = d.ok ? `✓ ${d.mode} credentials work.` + (d.webhook ? `\n✓ Webhook ready: ${d.webhook.url}` : '\n✗ ' + (d.error || 'Webhook not created')) + '\nThen click “Publish site” so PayPal shows at checkout.' : '✗ ' + d.error; paint(); }
+        catch (e) { o.textContent = '✗ ' + e.message; } };
     }
     const dt = $('[data-dhltest]'); if (dt) dt.onclick = async () => {
       const o = $('#dhlout'); o.hidden = false; o.textContent = 'Asking DHL…';

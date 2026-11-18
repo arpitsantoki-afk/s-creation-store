@@ -47,6 +47,8 @@ export function publicRoutes(r) {
   // Everything the static site generator needs, in one call.
   r.add('GET', '/api/export', async (req, env) => {
     const [settings, products, fx] = await Promise.all([getSettings(env), listProducts(env, { publishedOnly: true }), getFx(env)]);
+    // The storefront only offers payment methods that actually have credentials.
+    for (const [k, g] of Object.entries(gateways)) if (settings.payments?.[k]) settings.payments[k].enabled = !!(settings.payments[k].enabled && g.configured(env));
     return json({ settings, products, fx }, 200, { 'cache-control': 'no-store' });
   });
 
