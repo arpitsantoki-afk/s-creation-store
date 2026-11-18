@@ -182,7 +182,7 @@
     ]
   },
   "analytics": {
-    "ga4": "",
+    "ga4": "G-R7SRPEQVT0",
     "cloudflareToken": ""
   },
   "sizeCharts": {
@@ -657,7 +657,7 @@
     "title": "Order a sample kit",
     "text": "Feel the fabric before you commit. Pick up to 5 pieces across any styles, colours and sizes — no minimum. Shipped worldwide by DHL Express."
   },
-  "contentRev": 3,
+  "contentRev": 4,
   "contentForce": [
     "cancellation-refunds"
   ]

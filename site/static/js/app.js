@@ -94,6 +94,10 @@ const cart = {
     return n;
   },
 };
+// ---- Google Analytics 4 e-commerce events (no-op when GA isn't configured) ----
+function track(event, params = {}) { try { if (typeof window.gtag === 'function') window.gtag('event', event, params); } catch {} }
+const gaItem = (p, { color, size, qty = 1, price, sample } = {}) => ({ item_id: p.code || p.id, item_name: p.name, item_brand: SC.store?.name || 'S Creation',
+  item_category: p.type || '', item_variant: [color, size].filter(Boolean).join(' / '), item_list_name: sample ? 'Sample kit' : undefined, price: price ?? p.price, quantity: qty });
 function sampleToast(n, name) {
   const max = SC.samples?.maxPieces || 5;
   if (!n) return toast(t(lang, 'sampleFull', { n: max }), 5000);
@@ -163,12 +167,17 @@ function initPDP() {
     const mix = [];
     for (const [c, m] of Object.entries(qty)) for (const [s, n] of Object.entries(m)) if (n > 0) mix.push({ color: c, size: s, qty: n });
     cart.setProductMix(P.id, mix);
+    const total = mix.reduce((s, m) => s + m.qty, 0), unit = tierPrice(P, total);
+    track('add_to_cart', { currency: SC.baseCurrency, value: +(unit * total).toFixed(2), items: mix.map((m) => gaItem(P, { ...m, price: unit })) });
     toast(`${t(lang, 'added')} — <a href="${href('/cart/')}">${t(lang, 'cart')} →</a>`);
   });
   $('[data-sbadd]')?.addEventListener('click', () => {
     const size = $('[data-sbsize]').value;
-    sampleToast(cart.addSample(P.id, color, size, 1), `${P.name} · ${color} · ${size}`);
+    const n = cart.addSample(P.id, color, size, 1);
+    if (n) track('add_to_cart', { currency: SC.baseCurrency, items: [gaItem(P, { color, size, qty: n, sample: true })] });
+    sampleToast(n, `${P.name} · ${color} · ${size}`);
   });
+  track('view_item', { currency: SC.baseCurrency, value: P.price, items: [gaItem(P, { color })] });
   document.addEventListener('sc:prices', render);
   showColor(color);
   render();
@@ -224,6 +233,8 @@ async function initCheckout(root) {
   const items = cart.items();
   if (!items.length) { location.href = href('/cart/'); return; }
   const products = await catalog();
+  { const pc = priceCart(items, products, settings, fx, settings.baseCurrency);
+    track('begin_checkout', { currency: settings.baseCurrency, value: pc.subtotal, items: pc.groups.flatMap((g) => g.lines.map((l) => ({ item_id: g.code, item_name: g.name, item_variant: `${l.color} / ${l.size}`, price: g.unit, quantity: l.qty }))) }); }
   const dn = new Intl.DisplayNames([locale], { type: 'region' });
   const countries = COUNTRIES.map((c) => [c, dn.of(c) || c]).sort((a, b) => a[1].localeCompare(b[1], locale));
   const saved = store.get('sc_checkout', {});
@@ -346,6 +357,11 @@ async function initOrder(root) {
     }
     const paid = !['pending_payment', 'cancelled'].includes(o.status);
     if (paid) cart.clear();
+    if (paid && !store.get('sc_ga_' + o.number)) {
+      store.set('sc_ga_' + o.number, 1);
+      track('purchase', { transaction_id: o.number, currency: o.currency, value: o.total, shipping: o.shippingAmount || 0, tax: o.taxAmount || 0,
+        items: (o.groups || []).flatMap((g) => (g.lines || []).map((l) => ({ item_id: g.code, item_name: g.name, item_variant: `${l.color} / ${l.size}`, price: g.unit, quantity: l.qty }))) });
+    }
     root.innerHTML = `<div style="max-width:760px;margin:40px auto 80px">
       <div class="${paid ? 'okbox' : 'warnbox'}" style="font-size:16px;padding:16px">${paid ? '✓ ' + t(lang, 'orderReceived') : esc(o.status === 'cancelled' ? 'Payment cancelled.' : t(lang, 'orderPending'))}</div>
       <h2 style="margin-top:28px">${t(lang, 'orderNumber')} ${esc(o.number)}</h2>
@@ -368,7 +384,7 @@ function initContact() {
     e.preventDefault();
     const out = $('[data-msg]', f), btn = $('button', f);
     btn.disabled = true;
-    try { await api('/api/contact', { method: 'POST', body: { ...Object.fromEntries(new FormData(f)), lang, page: location.pathname } }); f.reset(); out.innerHTML = `<div class="okbox">${t(lang, 'messageSent')}</div>`; }
+    try { await api('/api/contact', { method: 'POST', body: { ...Object.fromEntries(new FormData(f)), lang, page: location.pathname } }); f.reset(); track('generate_lead', { method: 'contact_form' }); out.innerHTML = `<div class="okbox">${t(lang, 'messageSent')}</div>`; }
     catch (ex) { out.innerHTML = `<div class="errbox">${esc(ex.message)} — ${esc(SC.store?.email || '')}</div>`; }
     btn.disabled = false;
   });
@@ -395,7 +411,9 @@ function initSampleKit() {
     const add = e.target.closest('[data-skadd]'), rm = e.target.closest('[data-skrm]');
     if (add) {
       const r = add.closest('[data-skp]'), color = $('[data-skc]', r).value, size = $('[data-sks]', r).value;
-      sampleToast(cart.addSample(r.dataset.skp, color, size, +$('[data-skq]', r).value || 1), `${names[r.dataset.skp]} · ${color} · ${size}`);
+      const n = cart.addSample(r.dataset.skp, color, size, +$('[data-skq]', r).value || 1);
+      if (n) track('add_to_cart', { currency: SC.baseCurrency, items: [{ item_id: r.dataset.skp, item_name: names[r.dataset.skp], item_variant: `${color} / ${size}`, item_list_name: 'Sample kit', quantity: n }] });
+      sampleToast(n, `${names[r.dataset.skp]} · ${color} · ${size}`);
       draw();
     }
     if (rm) {
@@ -451,6 +469,7 @@ function initHero() {
 }
 
 // ---------------- boot ----------------
+document.addEventListener('click', (e) => { const w = e.target.closest('a[href^="https://wa.me/"]'); if (w) track('generate_lead', { method: 'whatsapp', link_text: w.textContent.trim().slice(0, 60) }); });
 initHeader();
 initHero();
 initSampleKit();

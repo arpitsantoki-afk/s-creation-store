@@ -43,6 +43,7 @@ async function applyContentRev(env, saved) {
   if (!saved.store.address?.line1) saved.store.address = def.store.address;
   saved.invoice = { ...(saved.invoice || {}) };
   for (const k of ['gstin', 'address', 'legalName', 'state']) if (!saved.invoice[k] || /\[/.test(saved.invoice[k])) saved.invoice[k] = def.invoice[k];
+  if (!saved.analytics?.ga4 && def.analytics?.ga4) saved.analytics = { ...(saved.analytics || {}), ga4: def.analytics.ga4 };
   saved.contentRev = def.contentRev;
   await saveSettings(env, saved);
 }
