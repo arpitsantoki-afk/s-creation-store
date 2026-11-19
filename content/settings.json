@@ -26,7 +26,7 @@
     "whatsappMessage": "Hi S Creation, I have a question."
   },
   "baseCurrency": "INR",
-  "fxMarkup": 2,
+  "fxMarkup": 5,
   "currencies": [
     {
       "code": "INR",
@@ -657,7 +657,7 @@
     "title": "Order a sample kit",
     "text": "Feel the fabric before you commit. Pick up to 5 pieces across any styles, colours and sizes — no minimum. Shipped worldwide by DHL Express."
   },
-  "contentRev": 4,
+  "contentRev": 5,
   "contentForce": [
     "cancellation-refunds"
   ]

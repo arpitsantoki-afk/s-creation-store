@@ -44,6 +44,10 @@ async function applyContentRev(env, saved) {
   saved.invoice = { ...(saved.invoice || {}) };
   for (const k of ['gstin', 'address', 'legalName', 'state']) if (!saved.invoice[k] || /\[/.test(saved.invoice[k])) saved.invoice[k] = def.invoice[k];
   if (!saved.analytics?.ga4 && def.analytics?.ga4) saved.analytics = { ...(saved.analytics || {}), ga4: def.analytics.ga4 };
+  if ((saved.contentRev || 0) < 5) { // 19 Nov 2026: 5% markup on foreign currencies covers PayPal / international card fees
+    saved.fxMarkup = 5;
+    if (Array.isArray(saved.currencies)) saved.currencies = saved.currencies.map((c) => (typeof c.markup === 'number' && c.markup < 5 ? { ...c, markup: 5 } : c));
+  }
   saved.contentRev = def.contentRev;
   await saveSettings(env, saved);
 }
