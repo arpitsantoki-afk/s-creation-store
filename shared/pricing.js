@@ -97,5 +97,8 @@ export function priceCart(items, products, settings, fx, cur) {
 export function taxFor(country, amount, settings, cur) {
   const rule = (settings.tax?.rules || []).find((r) => r.country === country);
   if (!rule || !rule.rate) return { amount: 0, label: '' };
-  return { amount: +(amount * rule.rate / 100).toFixed(decimals(cur)), label: `${rule.label || 'Tax'} ${rule.rate}%`, inclusive: !!settings.tax?.inclusive };
+  const label = `${rule.label || 'Tax'} ${rule.rate}%`;
+  // Prices already include tax: nothing is added; `included` is the tax inside the price (for the GST invoice).
+  if (settings.tax?.inclusive) return { amount: 0, included: +(amount - amount / (1 + rule.rate / 100)).toFixed(decimals(cur)), label, inclusive: true };
+  return { amount: +(amount * rule.rate / 100).toFixed(decimals(cur)), label, inclusive: false };
 }

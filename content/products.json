@@ -35,10 +35,10 @@
       {"name": "Midnight Navy", "hex": "#1A2140", "images": []}, {"name": "Classic Black", "hex": "#141414", "images": []}
     ],
     "heroColor": "Red",
-    "moq": 50, "price": 650, "tiers": [{"min": 100, "price": 620}, {"min": 250, "price": 590}],
+    "moq": 10, "price": 1084, "tiers": [{"min": 11, "price": 986}, {"min": 21, "price": 896}, {"min": 31, "price": 815}, {"min": 41, "price": 741}, {"min": 51, "price": 706}, {"min": 101, "price": 672}, {"min": 201, "price": 640}, {"min": 301, "price": 610}, {"min": 401, "price": 580}],
     "weightG": 260, "hsCode": "6105.10", "leadTime": "7–10 working days",
     "careKey": "cotton",
-    "seo": {"title": "Aurum Pima Cotton Polo – 260 GSM, 12 Colours | Bulk from 50 pcs", "description": "Premium 100% Pima cotton polo, 260 GSM with gold-finish bio wash and jacquard collar. Sizes XS–5XL, 12 colours. Order from 50 pieces, mix sizes and colours. Ships worldwide."},
+    "seo": {"title": "Aurum Pima Cotton Polo – 260 GSM, 12 Colours | Bulk from 10 pcs", "description": "Premium 100% Pima cotton polo, 260 GSM with gold-finish bio wash and jacquard collar. Sizes XS–5XL, 12 colours. Order from 10 pieces, mix sizes and colours. Ships worldwide."},
     "faqs": [{"q": "Will the Pima cotton shrink?", "a": "The double bio wash pre-treats the fabric so it feels broken-in and stays stable. Follow the care guide (30°C, line dry) for the best results."}],
     "i18n": {}
   },

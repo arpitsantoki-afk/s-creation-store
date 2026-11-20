@@ -22,7 +22,7 @@
       "linkedin": "",
       "facebook": ""
     },
-    "announcement": "Minimum order 50 pcs per style — mix any sizes and colours. Worldwide shipping by DHL Express.",
+    "announcement": "Order from 10 pcs per style — mix any sizes and colours. Worldwide shipping by DHL Express.",
     "whatsappMessage": "Hi S Creation, I have a question."
   },
   "baseCurrency": "INR",
@@ -165,7 +165,8 @@
         "rate": 5,
         "label": "GST"
       }
-    ]
+    ],
+    "inclusive": true
   },
   "orders": {
     "notifyEmail": "screationindia@gmail.com",
@@ -174,7 +175,7 @@
   "seo": {
     "titleSuffix": " | S Creation",
     "homeTitle": "S Creation — Premium Polos & Tees in Bulk, Made in India",
-    "homeDescription": "Buy premium Pima cotton, recycled and performance polos and oversized tees in bulk. Order from 50 pieces per style, mix sizes and colours, pay in your currency and ship worldwide by DHL Express.",
+    "homeDescription": "Buy premium Pima cotton, recycled and performance polos and oversized tees in bulk. Order from 10 pieces per style, mix sizes and colours, pay in your currency and ship worldwide by DHL Express.",
     "ogImage": "/assets/img/og.png",
     "keywords": [
       "bulk polo shirts",
@@ -505,7 +506,7 @@
   "faqs": [
     {
       "q": "What is the minimum order quantity (MOQ)?",
-      "a": "Each style has its own minimum, shown on the product page — 50 pieces for most styles. The minimum applies per product, and you can mix any sizes and colours to reach it."
+      "a": "Each style has its own minimum, shown on the product page — from 10 pieces. The minimum applies per product, and you can mix any sizes and colours to reach it. The more you order, the lower the price per piece."
     },
     {
       "q": "Can I mix sizes and colours?",
@@ -663,7 +664,7 @@
     "title": "Order a sample kit",
     "text": "Feel the fabric before you commit. Pick up to 5 pieces across any styles, colours and sizes — no minimum. Shipped worldwide by DHL Express."
   },
-  "contentRev": 5,
+  "contentRev": 6,
   "contentForce": [
     "cancellation-refunds"
   ]

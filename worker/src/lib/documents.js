@@ -93,13 +93,22 @@ export function invoicePdf(order, settings) {
   // Totals
   if (y > 640) { pdf.newPage(); y = 60; }
   const tot = (label, v, bold = false) => { pdf.text(470, y, label, { size: bold ? 10.5 : 9.5, bold, align: 'right' }); pdf.text(551, y, fmt(v, cur), { size: bold ? 10.5 : 9.5, bold, align: 'right' }); y += bold ? 18 : 15; };
-  tot('Subtotal', order.subtotal);
-  tot(`Shipping — ${order.shipping?.service || ''}`.slice(0, 48), order.shippingAmount);
-  if (order.taxAmount) {
+  const gst = order.taxAmount || order.taxIncluded || 0;
+  const gstLines = () => {
     const intra = norm(order.address.state) && norm(order.address.state) === norm(inv.state || settings.shipping?.origin?.state);
-    const rate = (order.taxLabel.match(/([\d.]+)%/) || [])[1];
-    if (intra && rate) { tot(`CGST ${rate / 2}%`, +(order.taxAmount / 2).toFixed(2)); tot(`SGST ${rate / 2}%`, +(order.taxAmount - (order.taxAmount / 2).toFixed(2)).toFixed(2)); }
-    else tot(rate ? `IGST ${rate}%` : order.taxLabel, order.taxAmount);
+    const rate = ((order.taxLabel || '').match(/([\d.]+)%/) || [])[1];
+    if (intra && rate) { tot(`CGST ${rate / 2}%`, +(gst / 2).toFixed(2)); tot(`SGST ${rate / 2}%`, +(gst - (gst / 2).toFixed(2)).toFixed(2)); }
+    else tot(rate ? `IGST ${rate}%` : order.taxLabel, gst);
+  };
+  if (order.taxIncluded && !order.taxAmount) {
+    // Prices include GST: show the taxable value and the GST contained in it.
+    tot('Taxable value', +(order.subtotal - gst).toFixed(2));
+    gstLines();
+    tot(`Shipping — ${order.shipping?.service || ''}`.slice(0, 48), order.shippingAmount);
+  } else {
+    tot('Subtotal', order.subtotal);
+    tot(`Shipping — ${order.shipping?.service || ''}`.slice(0, 48), order.shippingAmount);
+    if (gst) gstLines();
   }
   pdf.line(330, y - 6, 555, y - 6, { width: 1 }); y += 6;
   tot('TOTAL', order.total, true);

@@ -122,7 +122,7 @@ export function publicRoutes(r) {
         weightG: products.find((p) => p.id === productId)?.weightG })),
       subtotal: priced.subtotal, weightG: priced.weightG,
       shipping: { carrier: rate.carrier, code: rate.code, service: rate.service, eta: rate.eta, amountBase: rate.amountBase },
-      shippingAmount: rate.amount, taxAmount: tax.amount, taxLabel: tax.label, total,
+      shippingAmount: rate.amount, taxAmount: tax.amount, taxLabel: tax.label, ...(tax.included ? { taxIncluded: tax.included } : {}), total,
     };
     const prefix = (settings.orders?.numberPrefix || 'SC').replace(/[^A-Z0-9-]/gi, '');
     const cust = await customerFromReq(req, env);

@@ -48,6 +48,15 @@ async function applyContentRev(env, saved) {
     saved.fxMarkup = 5;
     if (Array.isArray(saved.currencies)) saved.currencies = saved.currencies.map((c) => (typeof c.markup === 'number' && c.markup < 5 ? { ...c, markup: 5 } : c));
   }
+  if ((saved.contentRev || 0) < 6) { // 20 Nov 2026: GST-inclusive prices; Aurum slab pricing from 10 pcs
+    saved.tax = { ...(saved.tax || {}), inclusive: true };
+    const swap = (o, k, from, to) => { if (o && typeof o[k] === 'string') o[k] = o[k].replace(from, to); };
+    swap(saved.store, 'announcement', 'Minimum order 50 pcs per style', 'Order from 10 pcs per style');
+    swap(saved.seo, 'homeDescription', 'Order from 50 pieces per style', 'Order from 10 pieces per style');
+    for (const q of saved.faqs || []) if (q.q === 'What is the minimum order quantity (MOQ)?' && /50 pieces for most styles/.test(q.a)) q.a = def.faqs.find((x) => x.q === q.q)?.a || q.a;
+    const au = await getProduct(env, 'sc-01'), d = starterProducts.find((p) => p.id === 'sc-01');
+    if (au && d) await saveProduct(env, { ...au, price: d.price, moq: d.moq, tiers: d.tiers, seo: { ...(au.seo || {}), title: d.seo.title, description: d.seo.description } });
+  }
   saved.contentRev = def.contentRev;
   await saveSettings(env, saved);
 }

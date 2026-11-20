@@ -323,7 +323,7 @@ function productPage(ctx, p0) {
     <div class="pricebox"><div class="price" data-unit>${t(lang, 'from')} <span data-price="${minPrice}">${fmtBase(minPrice, S)}</span> <small>${t(lang, 'perPc')}</small></div>
       <span class="pill">${t(lang, 'moq')} ${p.moq} ${t(lang, 'pcs')}</span></div>
     <table class="tiers"><thead><tr><th>${t(lang, 'qty')}</th><th>${t(lang, 'unitPrice')}</th></tr></thead><tbody>
-      ${tiers.map((x, i) => `<tr data-tier="${x.min}"><td>${x.min}${tiers[i + 1] ? '–' + (tiers[i + 1].min - 1) : '+'} ${t(lang, 'pcs')}</td><td><span data-price="${x.price}">${fmtBase(x.price, S)}</span></td></tr>`).join('')}
+      ${tiers.map((x, i) => `<tr data-tier="${x.min}"><td>${tiers[i + 1] ? (tiers[i + 1].min - 1 > x.min ? `${x.min}–${tiers[i + 1].min - 1}` : x.min) : x.min + '+'} ${t(lang, 'pcs')}</td><td><span data-price="${x.price}">${fmtBase(x.price, S)}</span></td></tr>`).join('')}
     </tbody></table>
     <h2 class="mono" style="font-size:12px;margin:0 0 4px">${t(lang, 'buildOrder')}</h2>
     <p class="muted" style="font-size:13px;margin:0">${t(lang, 'buildOrderHint')}</p>
