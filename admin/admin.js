@@ -625,7 +625,17 @@ async function viewSettings() {
       lang: `<div class="stack">${Object.entries(allLangs).map(([k, n]) => `<label class="check"><input type="checkbox" data-lang="${k}" ${S.languages.enabled.includes(k) ? 'checked' : ''} ${k === 'en' ? 'disabled' : ''}> ${n} (${k})</label>`).join('')}
         ${F.sel('languages.default', 'Default language (served at /)', S.languages.enabled)}
         <p class="muted">Interface text for DE/FR/ES is built in. Product and page content is translated per item (Products → Translations). Pages without a translation stay in English and point search engines to the English version.</p></div>`,
-      pay: `<div class="grid2"><div class="card"><h2>Stripe <span>${dot(integ.stripe.configured)}</span></h2><div class="stack">${F.bool('payments.stripe.enabled', 'Enabled')}${F.text('payments.stripe.label', 'Label at checkout')}${F.csv('payments.stripe.currencies', 'Limit to currencies', { hint: 'empty = all enabled', upper: true })}
+      pay: `<div class="card"><h2>Razorpay <span>${dot(integ.razorpay?.configured)}</span> <span class="muted mono" style="font-size:12px">${integ.razorpay?.configured ? integ.razorpay.mode + ' keys' : ''}</span></h2>
+          <div class="grid2"><div class="stack">${F.bool('payments.razorpay.enabled', 'Enabled')}${F.text('payments.razorpay.label', 'Label at checkout')}
+            ${F.bool('payments.razorpay.international', 'International payments approved by Razorpay (show for foreign currencies too)')}${F.csv('payments.razorpay.currencies', 'Limit foreign currencies', { hint: 'empty = all enabled; INR is always on', upper: true })}</div>
+          <div class="stack" id="rzcreds" style="background:#faf9f7;padding:12px;border:1px solid var(--line)"><b>Razorpay credentials</b>
+            <label class="f">Key ID <small id="h_RAZORPAY_KEY_ID"></small><input class="i" type="password" autocomplete="off" data-rsec="RAZORPAY_KEY_ID" placeholder="rzp_live_… or rzp_test_…"></label>
+            <label class="f">Key Secret <small id="h_RAZORPAY_KEY_SECRET"></small><input class="i" type="password" autocomplete="off" data-rsec="RAZORPAY_KEY_SECRET"></label>
+            <label class="f">Webhook secret <small>optional · <span id="h_RAZORPAY_WEBHOOK_SECRET"></span></small><input class="i" type="password" autocomplete="off" data-rsec="RAZORPAY_WEBHOOK_SECRET" placeholder="The secret you type when creating the webhook"></label>
+            <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn sm" data-rzsave>Save Razorpay credentials</button><button class="btn ghost sm" data-rztest>Check keys</button><button class="btn ghost sm" data-rzclear>Remove</button></div>
+            <pre id="rzout" hidden style="white-space:pre-wrap;font-size:12px;margin:0"></pre>
+            <p class="muted" style="font-size:12px;margin:0">Webhook (recommended): Razorpay → Account &amp; Settings → Webhooks → Add: URL <code>${esc(integ.webhooks.razorpay || '')}</code>, event <b>payment_link.paid</b>, and a secret of your choice (paste the same secret above).</p></div></div></div>
+        <div class="grid2"><div class="card"><h2>Stripe <span>${dot(integ.stripe.configured)}</span></h2><div class="stack">${F.bool('payments.stripe.enabled', 'Enabled')}${F.text('payments.stripe.label', 'Label at checkout')}${F.csv('payments.stripe.currencies', 'Limit to currencies', { hint: 'empty = all enabled', upper: true })}
           <p class="muted" style="font-size:12px">Keys are Worker secrets: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET. Webhook URL: <code>${esc(integ.webhooks.stripe)}</code> (events: checkout.session.completed, .async_payment_succeeded, .async_payment_failed, .expired).</p></div></div>
         <div class="card"><h2>PayPal <span>${dot(integ.paypal.configured)}</span></h2><div class="stack">${F.bool('payments.paypal.enabled', 'Enabled')}${F.sel('payments.paypal.mode', 'Mode', [['sandbox', 'Sandbox (test)'], ['live', 'Live']])}${F.text('payments.paypal.label', 'Label at checkout')}${F.csv('payments.paypal.currencies', 'Currencies', { upper: true })}
           <div class="stack" id="ppcreds" style="background:#faf9f7;padding:12px;border:1px solid var(--line)"><b>PayPal credentials</b>
@@ -685,6 +695,16 @@ async function viewSettings() {
       paint();
       $('[data-savesec]').onclick = async () => { const body = {}; $$('[data-sec]').forEach((i) => { if (i.value.trim()) body[i.dataset.sec] = i.value.trim(); }); if (!Object.keys(body).length) return toast('Type the key first', true); await api('/api/admin/secrets', { method: 'PUT', body }); $$('[data-sec]').forEach((i) => (i.value = '')); toast('DHL credentials saved'); paint(); };
       $('[data-clearsec]').onclick = async () => { if (!confirm('Remove the DHL credentials saved in the dashboard?')) return; await api('/api/admin/secrets', { method: 'PUT', body: { DHL_API_KEY: '', DHL_API_SECRET: '', DHL_ACCOUNT_NUMBER: '' } }); toast('Removed'); paint(); };
+    }
+    if ($('#rzcreds')) {
+      const keys = ['RAZORPAY_KEY_ID', 'RAZORPAY_KEY_SECRET', 'RAZORPAY_WEBHOOK_SECRET'];
+      const paint = async () => { const { secrets } = await api('/api/admin/secrets'); for (const k of keys) { const el = $('#h_' + k), v = secrets[k]; if (el) el.textContent = v?.set ? (k === 'RAZORPAY_KEY_SECRET' || k === 'RAZORPAY_WEBHOOK_SECRET' ? 'saved' : `saved …${v.hint}`) : 'not set'; } };
+      paint();
+      $('[data-rzsave]').onclick = async () => { const body = {}; $$('[data-rsec]').forEach((i) => { if (i.value.trim()) body[i.dataset.rsec] = i.value.trim(); }); if (!Object.keys(body).length) return toast('Paste the Key ID and Key Secret first', true); await api('/api/admin/secrets', { method: 'PUT', body }); $$('[data-rsec]').forEach((i) => (i.value = '')); toast('Razorpay credentials saved — click “Check keys”'); paint(); };
+      $('[data-rzclear]').onclick = async () => { if (!confirm('Remove the Razorpay credentials saved in the dashboard?')) return; await api('/api/admin/secrets', { method: 'PUT', body: Object.fromEntries(keys.map((k) => [k, ''])) }); toast('Removed'); paint(); };
+      $('[data-rztest]').onclick = async () => { const o = $('#rzout'); o.hidden = false; o.textContent = 'Asking Razorpay…';
+        try { const d = await api('/api/admin/razorpay/check', { method: 'POST', body: {} }); o.textContent = d.ok ? `✓ Razorpay ${d.mode} keys work.` + (d.webhook.secretSet ? '\n✓ Webhook secret saved.' : '\n• Webhook secret not saved yet (optional, recommended).') + '\nNow tick “Enabled”, Save, then click “Publish site”.' : '✗ ' + d.error; }
+        catch (e) { o.textContent = '✗ ' + e.message; } };
     }
     if ($('#ppcreds')) {
       const keys = ['PAYPAL_CLIENT_ID', 'PAYPAL_CLIENT_SECRET', 'PAYPAL_WEBHOOK_ID'];

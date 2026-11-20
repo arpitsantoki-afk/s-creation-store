@@ -271,7 +271,7 @@ async function initCheckout(root) {
   const drawPay = () => {
     const c = curOrBase();
     const opts = Object.entries(SC.payments || {}).filter(([, g]) => g.enabled && (!g.currencies?.length || g.currencies.includes(c)));
-    $('[data-pay]', root).innerHTML = opts.length ? opts.map(([k, g], i) => `<label class="opt"><input type="radio" name="gateway" value="${k}"${i === 0 ? ' checked' : ''}><span class="grow"><b>${esc(g.label || k)}</b><div class="sub">${k === 'stripe' ? 'Visa · Mastercard · Amex · Apple Pay · Google Pay' : 'PayPal account or card via PayPal'}</div></span></label>`).join('')
+    $('[data-pay]', root).innerHTML = opts.length ? opts.map(([k, g], i) => `<label class="opt"><input type="radio" name="gateway" value="${k}"${i === 0 ? ' checked' : ''}><span class="grow"><b>${esc(g.label || k)}</b><div class="sub">${k === 'razorpay' ? (c === 'INR' ? 'UPI · Cards · Netbanking · Wallets' : 'Visa · Mastercard · Amex') : k === 'stripe' ? 'Visa · Mastercard · Amex · Apple Pay · Google Pay' : 'PayPal account or card via PayPal'}</div></span></label>`).join('')
       : `<div class="warnbox">No payment method supports ${c}. Please switch currency.</div>`;
   };
   const drawSum = () => {

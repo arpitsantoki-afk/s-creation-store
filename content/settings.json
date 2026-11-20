@@ -82,6 +82,12 @@
     ]
   },
   "payments": {
+    "razorpay": {
+      "enabled": true,
+      "label": "UPI / Cards / Netbanking",
+      "international": false,
+      "currencies": []
+    },
     "stripe": {
       "enabled": true,
       "label": "Card / Apple Pay / Google Pay",

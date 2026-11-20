@@ -157,6 +157,16 @@ export function publicRoutes(r) {
         if (s.payment_status === 'paid') return json({ order: publicOrder(await markPaid(env, ctx, o, { sessionId: s.id, paymentIntent: s.payment_intent, amount: s.amount_total })) });
       } catch { /* fall through */ }
     }
+    // Razorpay: confirm directly with Razorpay while the buyer waits on the order page.
+    if (o.status === 'pending_payment' && o.gateway === 'razorpay' && o.gatewayRef && gateways.razorpay.configured(env)) {
+      try {
+        const s = await gateways.razorpay.status(env, o.gatewayRef);
+        if (s.paid) {
+          if (s.amount !== toMinor(o.total, o.currency)) await logEvent(env, o.id, 'amount_mismatch', { razorpay: s.amount, expected: toMinor(o.total, o.currency) });
+          return json({ order: publicOrder(await markPaid(env, ctx, o, { paymentId: s.paymentId, amount: s.amount })) });
+        }
+      } catch { /* fall through */ }
+    }
     return json({ order: publicOrder(o) });
   });
 
@@ -194,6 +204,17 @@ export function publicRoutes(r) {
       await updateOrder(env, o.id, { status: 'cancelled' }, { type: 'payment_expired' });
     } else if (ev.type === 'checkout.session.async_payment_failed') {
       await updateOrder(env, o.id, { status: 'cancelled' }, { type: 'payment_failed' });
+    }
+    return json({ received: true });
+  });
+
+  r.add('POST', '/api/webhooks/razorpay', async (req, env, ctx) => {
+    let ev;
+    try { ev = await gateways.razorpay.webhook(req, env); } catch (e) { return json({ error: e.message }, 400); }
+    if (ev.event === 'payment_link.paid') {
+      const link = ev.payload?.payment_link?.entity || {};
+      const o = await getOrder(env, link.notes?.order_id || '');
+      if (o && o.status === 'pending_payment') await markPaid(env, ctx, o, { paymentId: ev.payload?.payment?.entity?.id, amount: link.amount_paid });
     }
     return json({ received: true });
   });

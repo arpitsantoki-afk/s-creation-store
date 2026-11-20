@@ -152,12 +152,13 @@ export function adminRoutes(r) {
     return json({
       stripe: { configured: gateways.stripe.configured(env), webhook: !!env.STRIPE_WEBHOOK_SECRET, mode: (env.STRIPE_SECRET_KEY || '').startsWith('sk_live') ? 'live' : 'test' },
       paypal: { configured: gateways.paypal.configured(env), webhook: !!env.PAYPAL_WEBHOOK_ID, mode: s.payments?.paypal?.mode },
+      razorpay: { configured: gateways.razorpay.configured(env), webhook: !!env.RAZORPAY_WEBHOOK_SECRET, mode: String(env.RAZORPAY_KEY_ID || '').startsWith('rzp_live') ? 'live' : 'test' },
       dhl: { configured: carriers.dhl.configured(env), env: env.DHL_ENV || 'test' },
       github: { configured: !!(env.GITHUB_TOKEN && env.GITHUB_REPO), repo: env.GITHUB_REPO },
       email: { configured: !!(env.RESEND_API_KEY && env.EMAIL_FROM), from: env.EMAIL_FROM || null },
       ai: { configured: !!env.AI }, media: { configured: !!env.MEDIA }, google: { configured: googleConfigured(env) },
       fx: { source: fx.source || 'fallback', updated: fx.fetchedAt || fx.updated },
-      webhooks: { stripe: `${env.API_URL}/api/webhooks/stripe`, paypal: `${env.API_URL}/api/webhooks/paypal` },
+      webhooks: { stripe: `${env.API_URL}/api/webhooks/stripe`, paypal: `${env.API_URL}/api/webhooks/paypal`, razorpay: `${env.API_URL}/api/webhooks/razorpay` },
     });
   });
 
@@ -279,6 +280,12 @@ export function adminRoutes(r) {
     for (const k of DASHBOARD_SECRETS) if (k in b) { const v = String(b[k] ?? '').trim().slice(0, 300); if (v) st[k] = v; else delete st[k]; }
     await saveStoredSecrets(env, st);
     return json({ ok: true });
+  });
+
+  A('POST', '/api/admin/razorpay/check', 'settings', async (req, env) => {
+    if (!gateways.razorpay.configured(env)) return json({ ok: false, error: 'Enter the Key ID and Key Secret above and click “Save Razorpay credentials” first.' });
+    try { await gateways.razorpay.ping(env); } catch (e) { return json({ ok: false, error: e.message + ' — check that the Key ID and Secret are a matching pair from Razorpay → Account & Settings → API Keys.' }); }
+    return json({ ok: true, mode: String(env.RAZORPAY_KEY_ID).startsWith('rzp_live') ? 'live' : 'test', webhook: { url: `${env.API_URL}/api/webhooks/razorpay`, secretSet: !!env.RAZORPAY_WEBHOOK_SECRET } });
   });
 
   // PayPal: check the credentials and create (or reuse) the webhook, saving its ID.

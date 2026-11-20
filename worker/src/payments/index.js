@@ -3,8 +3,9 @@
 // and register it here; then add its toggle under settings.payments.
 import { stripe } from './stripe.js';
 import { paypal } from './paypal.js';
+import { razorpay } from './razorpay.js';
 
-export const gateways = { stripe, paypal };
+export const gateways = { razorpay, stripe, paypal };
 
 export function availableGateways(env, settings, currency) {
   return Object.values(gateways).filter((g) => settings.payments?.[g.id]?.enabled && g.configured(env) && g.supports(currency, settings));

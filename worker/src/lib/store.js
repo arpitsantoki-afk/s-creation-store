@@ -140,7 +140,7 @@ export async function logEvent(env, orderId, type, data) {
 }
 
 // Credentials entered in the dashboard (write-only; never sent back to the browser or exported).
-export const DASHBOARD_SECRETS = ['DHL_API_KEY', 'DHL_API_SECRET', 'DHL_ACCOUNT_NUMBER', 'PAYPAL_CLIENT_ID', 'PAYPAL_CLIENT_SECRET', 'PAYPAL_WEBHOOK_ID'];
+export const DASHBOARD_SECRETS = ['DHL_API_KEY', 'DHL_API_SECRET', 'DHL_ACCOUNT_NUMBER', 'PAYPAL_CLIENT_ID', 'PAYPAL_CLIENT_SECRET', 'PAYPAL_WEBHOOK_ID', 'RAZORPAY_KEY_ID', 'RAZORPAY_KEY_SECRET', 'RAZORPAY_WEBHOOK_SECRET'];
 export async function getStoredSecrets(env) {
   const row = await env.DB.prepare("SELECT value FROM settings WHERE key = 'secrets'").first();
   return row ? JSON.parse(row.value) : {};
